@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Player sheet | BattleTech Campaign</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="BattleTech Campaign home">
+        <span class="insignia" aria-hidden="true"><i></i></span>
+        <span>BattleTech <small>Campaign</small></span>
+      </a>
+      <div class="topbar-actions">
+        <button type="button" id="rules-button" class="quiet">Rules</button>
+        <button type="button" id="account-button">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div id="sheet">
+      <section class="sheet-header" aria-labelledby="group-name">
+        <div class="group">
+          <p class="eyebrow">Player sheet</p>
+          <h1 id="group-name"></h1>
+        </div>
+        <form id="supply-form" class="supply">
+          <label for="supply">Supply points <span>SP</span></label>
+          <div class="supply-entry">
+            <input id="supply" type="number" step="1" required>
+            <button type="submit">Save</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="roster" aria-labelledby="roster-title">
+        <div class="section-header">
+          <div>
+            <h2 id="roster-title">Unit roster</h2>
+            <p id="roster-count"></p>
+          </div>
+          <button id="add-unit" type="button" class="primary"><span aria-hidden="true">+</span> Add unit</button>
+        </div>
+        <div id="unit-list" class="unit-list"></div>
+        <p id="empty-roster" class="empty" hidden>Your roster is empty. Add a unit to get started.</p>
+      </section>
+    </div>
+
+    <section id="signed-out" class="signed-out" hidden>
+      <h1>Player sheet</h1>
+      <p>Open a sample roster to try the player sheet.</p>
+      <button type="button" id="open-account" class="primary">Choose preview roster</button>
+    </section>
+    <footer><span id="save-status" role="status">Local preview · Changes are saved in this browser.</span></footer>
+  </main>
+
+  <dialog id="rules-dialog" aria-labelledby="rules-title">
+    <div class="dialog-body">
+      <h2 id="rules-title">Campaign rules</h2>
+      <dl class="rules">
+        <dt>Supply points</dt>
+        <dd>Update your SP balance by hand when the group gains or spends supplies.</dd>
+        <dt>Damage</dt>
+        <dd>Update remaining armor and structure after a session. Filled pips show intact points. Outlined pips show lost points.</dd>
+        <dt>Critical hits</dt>
+        <dd>Mark affected systems in the unit editor and clear those entries as systems are repaired.</dd>
+        <dt>Inoperable units</dt>
+        <dd>Tick Inoperable when a unit cannot deploy. Clear it when the unit can return to service.</dd>
+      </dl>
+      <form method="dialog" class="dialog-actions"><button class="primary">Close</button></form>
+    </div>
+  </dialog>
+
+  <dialog id="account-dialog" aria-labelledby="account-title">
+    <div class="dialog-body">
+      <h2 id="account-title">Choose a preview roster</h2>
+      <p>These sample rosters are stored in this browser.</p>
+      <div id="account-options" class="account-options"></div>
+      <form method="dialog" class="dialog-actions"><button>Cancel</button></form>
+    </div>
+  </dialog>
+
+  <dialog id="unit-dialog" aria-labelledby="editor-title">
+    <form id="unit-form" class="dialog-body">
+      <h2 id="editor-title">Add unit</h2>
+      <div class="form-grid">
+        <label>Chassis <input name="chassis" required maxlength="48"></label>
+        <label>Variant <input name="variant" required maxlength="32"></label>
+        <label class="wide">Unit type
+          <select name="type"><option value="mech">’Mech</option><option value="vehicle">Vehicle</option><option value="air">Air unit</option></select>
+        </label>
+        <label>Total armor <input name="armorTotal" type="number" min="0" max="300" step="1" required></label>
+        <label>Remaining armor <input name="armorRemaining" type="number" min="0" step="1" required></label>
+        <label>Total structure <input name="structureTotal" type="number" min="0" max="300" step="1" required></label>
+        <label>Remaining structure <input name="structureRemaining" type="number" min="0" step="1" required></label>
+      </div>
+      <fieldset><legend>Critical hits</legend><div id="critical-options" class="critical-options"></div></fieldset>
+      <label class="check"><input name="inoperable" type="checkbox"> Inoperable</label>
+      <div class="dialog-actions">
+        <button type="button" id="remove-unit" class="danger" hidden>Remove unit</button>
+        <button type="button" id="cancel-editor">Cancel</button>
+        <button type="submit" class="primary">Save unit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="remove-dialog" aria-labelledby="remove-title">
+    <div class="dialog-body">
+      <h2 id="remove-title">Remove unit?</h2>
+      <p id="remove-description"></p>
+      <form method="dialog" class="dialog-actions">
+        <button value="cancel" autofocus>Cancel</button>
+        <button value="remove" class="danger">Remove unit</button>
+      </form>
+    </div>
+  </dialog>
+
+  <template id="unit-template">
+    <article class="unit-card">
+      <div class="unit-identity">
+        <div class="unit-art" role="img"><span class="unit-icon" aria-hidden="true"></span></div>
+        <div class="unit-title"><p class="unit-variant"></p><h3></h3></div>
+      </div>
+      <div class="unit-details">
+        <div class="track armor"><div class="track-label"><span>Armor</span><span class="track-count"></span></div><div class="pips" aria-hidden="true"></div></div>
+        <div class="track structure"><div class="track-label"><span>Structure</span><span class="track-count"></span></div><div class="pips" aria-hidden="true"></div></div>
+        <div class="criticals"><h4>Critical hits</h4><ul class="critical-list"></ul><p class="no-criticals">None</p></div>
+      </div>
+      <div class="card-actions">
+        <label class="check"><input type="checkbox"> Inoperable</label>
+        <button type="button">Edit</button>
+      </div>
+    </article>
+  </template>
+</body>
+</html>
