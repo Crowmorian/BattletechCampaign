@@ -64,7 +64,7 @@
     entry.dataset.contractId = offer.id;
     entry.querySelector('.offer-title').textContent = offer.title;
     entry.querySelector('.contract-reward').textContent = rewardText(offer);
-    entry.querySelector('.contract-briefing').textContent = offer.briefing;
+    campaignText.render(entry.querySelector('.contract-briefing'), offer.briefing);
     if (!isGM) return entry;
 
     const visibility = entry.querySelector('.offer-visibility');
@@ -97,13 +97,14 @@
     card.dataset.status = objective.status;
     card.querySelector('h4').textContent = objective.name;
     const description = card.querySelector('.objective-description');
-    description.textContent = objective.description;
+    campaignText.render(description, objective.description);
     description.hidden = !objective.description;
-    for (const [selector, value] of [['.objective-rule', objective.rule_text], ['.objective-reward', objective.completion_reward]]) {
-      const field = card.querySelector(selector);
-      field.querySelector('span').textContent = value;
-      field.hidden = !value;
-    }
+    const rule = card.querySelector('.objective-rule');
+    campaignText.render(rule.querySelector('.formatted-text'), objective.rule_text);
+    rule.hidden = !objective.rule_text;
+    const reward = card.querySelector('.objective-reward');
+    campaignText.render(reward.querySelector('.formatted-text'), objective.completion_reward);
+    reward.hidden = !objective.completion_reward;
     const { label, mark } = objectiveStates[objective.status];
     card.querySelector('.objective-mark').textContent = mark;
     card.querySelector('.objective-state').textContent = label;
@@ -175,7 +176,7 @@
     if (current) {
       byId('current-name').textContent = current.title;
       byId('current-reward').textContent = rewardText(current);
-      byId('current-briefing').textContent = current.briefing;
+      campaignText.render(byId('current-briefing'), current.briefing);
       currentObjectives.replaceChildren(makeObjectives(current));
     } else {
       currentObjectives.replaceChildren();
@@ -232,6 +233,8 @@
   status.textContent = '';
   if (!isGM) return;
 
+  campaignText.attach(contractForm);
+  campaignText.attach(objectiveEditor);
   byId('new-contract').hidden = false;
   byId('current-actions').hidden = false;
   byId('new-contract').addEventListener('click', () => openEditor());

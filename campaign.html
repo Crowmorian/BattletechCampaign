@@ -4,10 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contracts | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=objective-details-1">
+  <link rel="stylesheet" href="styles.css?v=descriptions-1">
   <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
   <script src="supabase/campaign-api.js?v=objective-details-1" defer></script>
-  <script src="contracts.js?v=objective-details-1" defer></script>
+  <script src="rules/vendor/markdown-it-15.0.3.min.js" defer></script>
+  <script src="formatting.js?v=descriptions-1" defer></script>
+  <script src="contracts.js?v=descriptions-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -37,7 +39,7 @@
         </div>
       </div>
       <p id="current-reward" class="contract-reward"></p>
-      <p id="current-briefing" class="contract-briefing"></p>
+      <div id="current-briefing" class="contract-briefing formatted-text"></div>
       <div id="current-objectives"></div>
     </section>
 
@@ -56,7 +58,10 @@
     <form id="contract-form" class="dialog-body contract-editor">
       <h2 id="contract-editor-title">New contract</h2>
       <label>Title <input name="title" required maxlength="100"></label>
-      <label>Briefing <textarea name="briefing" rows="6" required></textarea></label>
+      <div class="formatted-writing">
+        <label for="contract-briefing-input">Briefing</label>
+        <textarea id="contract-briefing-input" name="briefing" rows="6" required></textarea>
+      </div>
       <label>Reward (SP) <input name="reward" type="number" inputmode="numeric" min="0" max="9007199254740991" step="1" value="0" required></label>
       <p id="contract-form-status" class="hub-status" role="status"></p>
       <div class="dialog-actions">
@@ -70,9 +75,18 @@
     <form id="objective-editor" class="dialog-body contract-editor">
       <h2 id="objective-editor-title">New objective</h2>
       <label>Title <input name="title" required maxlength="180"></label>
-      <label>Description <textarea name="description" rows="4"></textarea></label>
-      <label>Special rule (optional) <textarea name="rule" rows="3"></textarea></label>
-      <label>Completion reward (optional) <input name="reward" placeholder="e.g. 2 SP"></label>
+      <div class="formatted-writing">
+        <label for="objective-description-input">Description</label>
+        <textarea id="objective-description-input" name="description" rows="4"></textarea>
+      </div>
+      <div class="formatted-writing">
+        <label for="objective-rule-input">Special rule (optional)</label>
+        <textarea id="objective-rule-input" name="rule" rows="3"></textarea>
+      </div>
+      <div class="formatted-writing">
+        <label for="objective-reward-input">Completion reward (optional)</label>
+        <textarea id="objective-reward-input" name="reward" rows="2" placeholder="e.g. 2 SP"></textarea>
+      </div>
       <p id="objective-editor-status" class="hub-status" role="status"></p>
       <div class="dialog-actions">
         <button id="cancel-objective" type="button">Cancel</button>
@@ -86,7 +100,7 @@
       <summary><span class="offer-title"></span><span class="offer-visibility" hidden></span></summary>
       <div class="rule-content">
         <p class="contract-reward"></p>
-        <p class="contract-briefing"></p>
+        <div class="contract-briefing formatted-text"></div>
         <div class="contract-actions" hidden>
           <button class="offer-edit" type="button">Edit</button>
           <button class="offer-visibility-toggle" type="button"></button>
@@ -99,9 +113,9 @@
   <template id="objective-template">
     <li class="objective-card">
       <h4></h4>
-      <p class="objective-description" hidden></p>
-      <p class="objective-rule" hidden><strong>Special rule</strong><span></span></p>
-      <p class="objective-reward" hidden><strong>Completion reward</strong><span></span></p>
+      <div class="objective-description formatted-text" hidden></div>
+      <div class="objective-rule" hidden><strong>Special rule</strong><div class="formatted-text"></div></div>
+      <div class="objective-reward" hidden><strong>Completion reward</strong><div class="formatted-text"></div></div>
       <div class="objective-controls">
         <span class="objective-status"><span class="objective-mark" aria-hidden="true"></span><span class="objective-state"></span></span>
         <span class="objective-visibility" hidden></span>

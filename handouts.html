@@ -4,10 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Handouts | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=handouts-influence-1">
+  <link rel="stylesheet" href="styles.css?v=descriptions-1">
   <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
   <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
-  <script src="handouts.js?v=supabase-1" defer></script>
+  <script src="rules/vendor/markdown-it-15.0.3.min.js" defer></script>
+  <script src="formatting.js?v=descriptions-1" defer></script>
+  <script src="handouts.js?v=descriptions-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -44,7 +46,10 @@
     <form id="handout-form" class="dialog-body record-editor">
       <h2 id="editor-title">New handout</h2>
       <label>Title <input name="title" required maxlength="100"></label>
-      <label>Handout text <textarea name="body" rows="6"></textarea></label>
+      <div class="formatted-writing">
+        <label for="handout-body-input">Handout text</label>
+        <textarea id="handout-body-input" name="body" rows="6"></textarea>
+      </div>
       <label>Attach images <input name="images" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
       <ul id="editor-images" class="editor-images" hidden></ul>
       <p id="editor-status" class="hub-status" role="status"></p>

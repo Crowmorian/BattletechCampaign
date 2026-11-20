@@ -68,9 +68,9 @@
     const content = document.createElement('div');
     content.className = 'rule-content';
     if (entry.body) {
-      const text = document.createElement('p');
-      text.className = 'contract-briefing';
-      text.textContent = entry.body;
+      const text = document.createElement('div');
+      text.className = 'formatted-text';
+      campaignText.render(text, entry.body);
       content.append(text);
     }
     if (entry.images.length) {
@@ -222,6 +222,7 @@
   status.textContent = '';
   if (!isGM) return;
 
+  campaignText.attach(form);
   const add = byId('new-handout');
   add.hidden = false;
   add.addEventListener('click', () => openEditor());
