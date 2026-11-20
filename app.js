@@ -294,7 +294,6 @@ for (const [key, roster] of Object.entries(state.rosters)) {
   byId('account-options').append(button);
 }
 
-byId('rules-button').addEventListener('click', () => byId('rules-dialog').showModal());
 byId('open-account').addEventListener('click', openAccountPicker);
 accountButton.addEventListener('click', () => {
   if (activeRoster()) {

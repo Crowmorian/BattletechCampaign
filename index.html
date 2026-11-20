@@ -4,8 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player sheet | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=damage-steppers-1">
-  <script src="app.js?v=damage-steppers-1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=rules-hub-1">
+  <script src="app.js?v=rules-hub-1" defer></script>
+  <script src="rules/vendor/markdown-it-15.0.3.min.js" defer></script>
+  <script src="rules/hub.js?v=rules-hub-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -15,7 +17,7 @@
         <span>BattleTech <small>Campaign</small></span>
       </a>
       <div class="topbar-actions">
-        <button type="button" id="rules-button" class="quiet">Rules</button>
+        <button type="button" id="rules-button" class="quiet" aria-haspopup="dialog">Rules</button>
         <button type="button" id="account-button">Sign out</button>
       </div>
     </div>
@@ -58,20 +60,18 @@
     <footer><span id="save-status" role="status">Local preview · Changes are saved in this browser.</span></footer>
   </main>
 
-  <dialog id="rules-dialog" aria-labelledby="rules-title">
-    <div class="dialog-body">
-      <h2 id="rules-title">Campaign rules</h2>
-      <dl class="rules">
-        <dt>Supply points</dt>
-        <dd>Update your SP balance by hand when the group gains or spends supplies.</dd>
-        <dt>Damage</dt>
-        <dd>Update remaining armor and structure after a session. Filled pips show intact points. Outlined pips show lost points.</dd>
-        <dt>Critical hits</dt>
-        <dd>Use the plus and minus buttons in the unit editor to record hits and repairs. Each filled pip marks one hit. Apply its listed effect at the table.</dd>
-        <dt>Inoperable units</dt>
-        <dd>Tick Inoperable when a unit cannot deploy. Clear it when the unit can return to service.</dd>
-      </dl>
-      <form method="dialog" class="dialog-actions"><button class="primary">Close</button></form>
+  <dialog id="rules-dialog" class="rules-hub" aria-labelledby="rules-title">
+    <header class="rules-header">
+      <h2 id="rules-title">Rules</h2>
+      <form method="dialog"><button type="submit">Close</button></form>
+    </header>
+    <div class="rules-tabs" role="tablist" aria-label="Rule sections">
+      <button id="campaign-tab" type="button" role="tab" aria-selected="true" aria-controls="campaign-panel">Campaign Rules</button>
+      <button id="alpha-strike-tab" type="button" role="tab" aria-selected="false" aria-controls="alpha-strike-panel" tabindex="-1">Alpha Strike</button>
+    </div>
+    <div class="rules-scroll">
+      <section id="campaign-panel" role="tabpanel" aria-labelledby="campaign-tab" tabindex="0"></section>
+      <section id="alpha-strike-panel" role="tabpanel" aria-labelledby="alpha-strike-tab" tabindex="0" hidden></section>
     </div>
   </dialog>
 
