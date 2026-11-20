@@ -67,7 +67,7 @@
         <dt>Damage</dt>
         <dd>Update remaining armor and structure after a session. Filled pips show intact points. Outlined pips show lost points.</dd>
         <dt>Critical hits</dt>
-        <dd>Mark affected systems in the unit editor and clear those entries as systems are repaired.</dd>
+        <dd>Use the plus and minus buttons in the unit editor to record hits and repairs. Each filled pip marks one hit. Apply its listed effect at the table.</dd>
         <dt>Inoperable units</dt>
         <dd>Tick Inoperable when a unit cannot deploy. Clear it when the unit can return to service.</dd>
       </dl>
@@ -98,7 +98,11 @@
         <label>Total structure <input name="structureTotal" type="number" min="0" max="300" step="1" required></label>
         <label>Remaining structure <input name="structureRemaining" type="number" min="0" step="1" required></label>
       </div>
-      <fieldset><legend>Critical hits</legend><div id="critical-options" class="critical-options"></div></fieldset>
+      <fieldset class="critical-editor">
+        <legend>Critical hits</legend>
+        <ul id="critical-options" class="critical-list"></ul>
+        <p class="legacy-criticals" hidden></p>
+      </fieldset>
       <label class="check"><input name="inoperable" type="checkbox"> Inoperable</label>
       <div class="dialog-actions">
         <button type="button" id="remove-unit" class="danger" hidden>Remove unit</button>
@@ -128,13 +132,26 @@
       <div class="unit-details">
         <div class="track armor"><div class="track-label"><span>Armor</span><span class="track-count"></span></div><div class="pips" aria-hidden="true"></div></div>
         <div class="track structure"><div class="track-label"><span>Structure</span><span class="track-count"></span></div><div class="pips" aria-hidden="true"></div></div>
-        <div class="criticals"><h4>Critical hits</h4><ul class="critical-list"></ul><p class="no-criticals">None</p></div>
+        <div class="criticals"><h4>Critical hits</h4><ul class="critical-list"></ul><p class="legacy-criticals" hidden></p></div>
       </div>
       <div class="card-actions">
         <label class="check"><input type="checkbox"> Inoperable</label>
         <button type="button">Edit</button>
       </div>
     </article>
+  </template>
+
+  <template id="critical-row-template">
+    <li class="critical-row">
+      <span class="critical-name"></span>
+      <div class="critical-controls">
+        <button type="button" class="critical-minus" hidden>−</button>
+        <span class="critical-pips" aria-hidden="true"></span>
+        <span class="visually-hidden critical-count"></span>
+        <button type="button" class="critical-plus" hidden>+</button>
+      </div>
+      <span class="critical-effect"></span>
+    </li>
   </template>
 </body>
 </html>

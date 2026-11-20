@@ -1,10 +1,18 @@
 const storageKey = 'battletech-player-sheet-v1';
 const previewStatus = 'Local preview · Changes are saved in this browser.';
-const criticalSystems = ['Engine', 'Gyro', 'Sensors', 'Life support', 'Weapons', 'Ammo', 'Movement'];
+const criticalSystems = [
+  { key: 'engine', label: 'Engine', limit: 1, effect: '+1 Heat when firing weapons' },
+  { key: 'fireControl', label: 'Fire Control', limit: 4, effect: '+2 To-Hit each' },
+  { key: 'mp', label: 'MP', limit: 4, effect: '½ MV each' },
+  { key: 'weapons', label: 'Weapons', limit: 4, effect: '−1 Damage each' },
+];
+const legacyCriticalSystems = new Map([
+  ['Engine', 'engine'], ['Sensors', 'fireControl'], ['Movement', 'mp'], ['Weapons', 'weapons'],
+]);
 const unitTypes = { mech: 'BattleMech', vehicle: 'Vehicle', air: 'Air unit' };
 
 function sampleUnit(id, chassis, variant, armorTotal, armorRemaining, structureTotal,
-  structureRemaining, criticalHits = [], inoperable = false) {
+  structureRemaining, criticalHits = {}, inoperable = false) {
   return { id, chassis, variant, type: 'mech', armorTotal, armorRemaining,
     structureTotal, structureRemaining, criticalHits, inoperable };
 }
@@ -16,8 +24,8 @@ const preview = {
       name: 'Rook Company', supply: 18,
       units: [
         sampleUnit('rook-1', 'Hunchback', 'HBK-4G', 20, 20, 10, 10),
-        sampleUnit('rook-2', 'Shadow Hawk', 'SHD-2H', 18, 11, 10, 8, ['Sensors', 'Weapons']),
-        sampleUnit('rook-3', 'Locust', 'LCT-1V', 12, 2, 6, 1, ['Engine', 'Movement'], true),
+        sampleUnit('rook-2', 'Shadow Hawk', 'SHD-2H', 18, 11, 10, 8, { fireControl: 2, weapons: 1 }),
+        sampleUnit('rook-3', 'Locust', 'LCT-1V', 12, 2, 6, 1, { engine: 1, mp: 2 }, true),
       ],
     },
     kestrel: {
@@ -35,6 +43,8 @@ const accountButton = byId('account-button');
 const accountDialog = byId('account-dialog');
 const unitList = byId('unit-list');
 const unitTemplate = byId('unit-template');
+const criticalTemplate = byId('critical-row-template');
+const criticalOptions = byId('critical-options');
 const unitDialog = byId('unit-dialog');
 const unitForm = byId('unit-form');
 const fields = unitForm.elements;
@@ -45,15 +55,34 @@ const trackNames = ['armor', 'structure'];
 
 let state = readPreview();
 let editingId = null;
+let criticalDraft = {};
 
 function readPreview() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    if (saved?.rosters?.rook && saved.rosters.kestrel) return saved;
+    if (saved?.rosters?.rook && saved.rosters.kestrel) {
+      for (const roster of Object.values(saved.rosters)) {
+        for (const unit of roster.units) migrateCriticalHits(unit);
+      }
+      return saved;
+    }
   } catch {
     // An unavailable or unreadable store can still use the sample rosters.
   }
   return preview;
+}
+
+function migrateCriticalHits(unit) {
+  if (!Array.isArray(unit.criticalHits)) return;
+  const hits = {};
+  const legacy = [];
+  for (const label of unit.criticalHits) {
+    const key = legacyCriticalSystems.get(label);
+    if (key) hits[key] = 1;
+    else legacy.push(label);
+  }
+  unit.criticalHits = hits;
+  if (legacy.length) unit.legacyCriticalHits = legacy;
 }
 
 function save(message) {
@@ -119,14 +148,8 @@ function renderCard(unit) {
     }
   }
 
-  const criticalList = card.querySelector('.critical-list');
-  criticalList.hidden = unit.criticalHits.length === 0;
-  card.querySelector('.no-criticals').hidden = unit.criticalHits.length > 0;
-  for (const name of unit.criticalHits) {
-    const item = document.createElement('li');
-    item.textContent = name;
-    criticalList.append(item);
-  }
+  renderCriticalRows(card.querySelector('.critical-list'), unit.criticalHits);
+  showLegacyCriticals(card, unit.legacyCriticalHits);
 
   const inoperable = card.querySelector('input');
   inoperable.checked = unit.inoperable;
@@ -138,10 +161,63 @@ function renderCard(unit) {
     save(`${unit.chassis} status updated.`);
   });
 
-  const edit = card.querySelector('button');
+  const edit = card.querySelector('.card-actions button');
   edit.setAttribute('aria-label', `Edit ${unit.chassis} ${unit.variant}`);
   edit.addEventListener('click', () => openEditor(unit));
   return card;
+}
+
+function renderCriticalRows(list, hits, editable = false) {
+  const rows = criticalSystems.map(({ key, label, limit, effect }) => {
+    const row = criticalTemplate.content.firstElementChild.cloneNode(true);
+    const readout = row.querySelector('.critical-count');
+    const pips = row.querySelector('.critical-pips');
+    const minus = row.querySelector('.critical-minus');
+    const plus = row.querySelector('.critical-plus');
+    row.querySelector('.critical-name').textContent = label;
+    row.querySelector('.critical-effect').textContent = effect;
+    for (let index = 0; index < limit; index += 1) {
+      const pip = document.createElement('span');
+      pip.className = 'critical-pip';
+      pips.append(pip);
+    }
+
+    function update() {
+      const count = hits[key] ?? 0;
+      readout.textContent = `${label}: ${count} of ${limit} hits`;
+      row.classList.toggle('has-hits', count > 0);
+      Array.from(pips.children).forEach((pip, index) => {
+        pip.classList.toggle('filled', index < count);
+      });
+      if (editable) {
+        minus.setAttribute('aria-disabled', String(count === 0));
+        plus.setAttribute('aria-disabled', String(count === limit));
+      }
+    }
+
+    if (editable) {
+      readout.setAttribute('role', 'status');
+      for (const [button, delta, action] of [[minus, -1, 'Remove'], [plus, 1, 'Add']]) {
+        button.hidden = false;
+        button.setAttribute('aria-label', `${action} ${label} hit`);
+        button.addEventListener('click', () => {
+          if (button.getAttribute('aria-disabled') === 'true') return;
+          hits[key] = (hits[key] ?? 0) + delta;
+          update();
+        });
+      }
+    }
+
+    update();
+    return row;
+  });
+  list.replaceChildren(...rows);
+}
+
+function showLegacyCriticals(container, hits = []) {
+  const note = container.querySelector('.legacy-criticals');
+  note.hidden = hits.length === 0;
+  note.textContent = hits.length ? `Earlier entries: ${hits.join(', ')}` : '';
 }
 
 function openEditor(unit) {
@@ -157,9 +233,9 @@ function openEditor(unit) {
     fields.namedItem(`${name}Remaining`).value = unit?.[`${name}Remaining`] ?? '';
   }
   fields.inoperable.checked = unit?.inoperable ?? false;
-  for (const checkbox of byId('critical-options').querySelectorAll('input')) {
-    checkbox.checked = unit?.criticalHits.includes(checkbox.value) ?? false;
-  }
+  criticalDraft = { ...unit?.criticalHits };
+  renderCriticalRows(criticalOptions, criticalDraft, true);
+  showLegacyCriticals(unitForm, unit?.legacyCriticalHits);
   updateEditorValidity();
   unitDialog.showModal();
   fields.chassis.focus();
@@ -181,17 +257,6 @@ function updateEditorValidity() {
 
 function openAccountPicker() {
   accountDialog.showModal();
-}
-
-for (const name of criticalSystems) {
-  const label = document.createElement('label');
-  label.className = 'check';
-  const input = document.createElement('input');
-  input.type = 'checkbox';
-  input.name = 'criticalHits';
-  input.value = name;
-  label.append(input, name);
-  byId('critical-options').append(label);
 }
 
 for (const [key, roster] of Object.entries(state.rosters)) {
@@ -243,8 +308,11 @@ unitForm.addEventListener('submit', (event) => {
 
   const data = new FormData(unitForm);
   const units = activeRoster().units;
-  const id = editingId ?? `unit-${crypto.getRandomValues(new Uint32Array(2)).join('-')}`;
+  const unitIndex = units.findIndex((entry) => entry.id === editingId);
+  const existing = units[unitIndex];
+  const id = existing?.id ?? `unit-${crypto.getRandomValues(new Uint32Array(2)).join('-')}`;
   const unit = {
+    ...existing,
     id,
     chassis: data.get('chassis').trim(),
     variant: data.get('variant').trim(),
@@ -253,18 +321,18 @@ unitForm.addEventListener('submit', (event) => {
     armorRemaining: Number(data.get('armorRemaining')),
     structureTotal: Number(data.get('structureTotal')),
     structureRemaining: Number(data.get('structureRemaining')),
-    criticalHits: data.getAll('criticalHits'),
+    criticalHits: criticalDraft,
     inoperable: data.has('inoperable'),
   };
-  if (editingId) {
-    units[units.findIndex((entry) => entry.id === editingId)] = unit;
+  if (existing) {
+    units[unitIndex] = unit;
   } else {
     units.push(unit);
   }
   unitDialog.close();
   renderUnits();
   const card = Array.from(unitList.children).find((entry) => entry.dataset.unitId === id);
-  card.querySelector('button').focus();
+  card.querySelector('.card-actions button').focus();
   save(`${unit.chassis} saved.`);
 });
 
