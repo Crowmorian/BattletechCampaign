@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Handouts | BattleTech Campaign</title>
+  <link rel="stylesheet" href="styles.css?v=handouts-influence-1">
+  <script src="preview.js?v=handouts-influence-1" defer></script>
+  <script src="handouts.js?v=handouts-influence-1" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="BattleTech Campaign home">
+        <span class="insignia" aria-hidden="true"><i></i></span>
+        <span>BattleTech <small>Campaign</small></span>
+      </a>
+      <div class="topbar-actions"><a class="button" href="index.html">Hub</a></div>
+    </div>
+  </header>
+
+  <main id="handouts-page" class="shell hub-shell" hidden>
+    <section class="sheet-header" aria-labelledby="handouts-title">
+      <h1 id="handouts-title">Handouts</h1>
+    </section>
+    <section class="hub-panel" aria-labelledby="current-title">
+      <div class="panel-heading">
+        <h2 id="current-title" tabindex="-1">Current Handouts</h2>
+        <button id="new-handout" class="primary" type="button" hidden>New handout</button>
+      </div>
+      <div id="current-handouts" class="handout-list"></div>
+      <p id="no-current" hidden>No current handouts.</p>
+    </section>
+    <section class="hub-panel" aria-labelledby="archive-title">
+      <h2 id="archive-title">Archive</h2>
+      <div id="archive" class="archive-list"></div>
+      <p id="no-archive" hidden>No games have been archived.</p>
+    </section>
+    <p id="handouts-status" class="hub-status" role="status">Loading handouts…</p>
+  </main>
+
+  <dialog id="handout-editor" aria-labelledby="editor-title">
+    <form id="handout-form" class="dialog-body record-editor">
+      <h2 id="editor-title">New handout</h2>
+      <label>Title <input name="title" required maxlength="100"></label>
+      <label>Handout text <textarea name="body" rows="6"></textarea></label>
+      <label>Attach images <input name="images" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
+      <ul id="editor-images" class="editor-images" hidden></ul>
+      <p id="editor-status" class="hub-status" role="status"></p>
+      <div class="dialog-actions">
+        <button type="button" id="cancel-handout">Cancel</button>
+        <button type="submit" class="primary">Save handout</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="archive-editor" aria-labelledby="archive-editor-title">
+    <form id="archive-form" class="dialog-body record-editor">
+      <h2 id="archive-editor-title">Archive handout</h2>
+      <p id="archive-entry"></p>
+      <label>Game name <input name="game" list="archive-games" required maxlength="100"></label>
+      <datalist id="archive-games"></datalist>
+      <p id="archive-status" class="hub-status" role="status"></p>
+      <div class="dialog-actions">
+        <button type="button" id="cancel-archive">Cancel</button>
+        <button type="submit" class="primary">Move to archive</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

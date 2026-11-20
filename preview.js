@@ -2,6 +2,7 @@ const campaignPreview = (() => {
   const accountKey = 'battletech-preview-account';
   const rosterKey = 'battletech-player-sheet-v1';
   const contractsKey = 'battletech-preview-contracts';
+  const influenceKey = 'battletech-preview-influence';
   const companies = { rook: 'Rook Company', kestrel: 'Kestrel Lance' };
 
   function read(key) {
@@ -36,6 +37,15 @@ const campaignPreview = (() => {
     });
   }
 
+  function watch(key, refresh) {
+    window.addEventListener('storage', (event) => {
+      if (event.key === key || event.key === null) refresh();
+    });
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) refresh();
+    });
+  }
+
   return {
     companies, account, requireAccount, watchAccount,
     signIn: (value) => write(accountKey, value),
@@ -44,13 +54,9 @@ const campaignPreview = (() => {
     saveRosters: (value) => write(rosterKey, value),
     readContracts: () => read(contractsKey),
     saveContracts: (value) => write(contractsKey, value),
-    watchContracts: (refresh) => {
-      window.addEventListener('storage', (event) => {
-        if (event.key === contractsKey || event.key === null) refresh();
-      });
-      window.addEventListener('pageshow', (event) => {
-        if (event.persisted) refresh();
-      });
-    },
+    watchContracts: (refresh) => watch(contractsKey, refresh),
+    readInfluence: () => read(influenceKey),
+    saveInfluence: (value) => write(influenceKey, value),
+    watchInfluence: (refresh) => watch(influenceKey, refresh),
   };
 })();

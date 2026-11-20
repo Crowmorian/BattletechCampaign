@@ -215,6 +215,46 @@ footer { color: var(--muted); font-size: .875rem; padding: 1.5rem 0; }
 .contract-editor textarea { resize: vertical; }
 .contract-editor .hub-status:empty { display: none; }
 
+.panel-heading, .panel-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.panel-heading { justify-content: space-between; }
+.handout-list:not(:empty), .archive-list:not(:empty) { margin-top: .85rem; }
+.archive-game { background: #1e271a; }
+.archived-handouts { padding: .75rem; }
+.handout-list summary, .archived-handouts summary { overflow-wrap: anywhere; }
+.handout-images { display: grid; gap: .7rem; }
+.handout-images img { display: block; width: auto; max-width: 100%; height: auto; border: 1px solid var(--line); }
+.record-editor { display: grid; gap: .65rem; }
+.record-editor label { display: grid; gap: .3rem; min-width: 0; }
+.record-editor textarea { resize: vertical; }
+.record-editor .hub-status:empty { display: none; }
+.editor-images { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.editor-images li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; overflow-wrap: anywhere; }
+
+.faction-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; margin-top: 1.5rem; }
+.faction-card {
+  min-width: 0;
+  padding: 1.15rem .75rem;
+  text-align: center;
+  background: linear-gradient(135deg, #293022, #11170e);
+  border: 1px solid var(--bronze);
+  box-shadow: inset 0 0 0 4px #0c110b;
+}
+.faction-card h2 { font: 600 1.4rem/1.2 var(--display); overflow-wrap: anywhere; }
+.influence-track { display: flex; align-items: center; justify-content: center; gap: .3rem; margin-block: .75rem .45rem; }
+.influence-pip {
+  width: clamp(.72rem, 3vw, 1rem);
+  aspect-ratio: 1;
+  border: 1px solid var(--bronze);
+  border-radius: 50%;
+}
+.influence-pip.negative.filled { background: var(--red); border-color: var(--red); }
+.influence-pip.positive.filled { background: #a9cf8c; border-color: #a9cf8c; }
+.influence-center { width: 1px; height: 1.65rem; margin-inline: .2rem; background: var(--gold); }
+.influence-score { color: var(--muted); font: 650 .875rem/1.4 var(--mono); }
+.faction-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-top: .8rem; }
+.faction-actions [data-shift] { width: 44px; min-height: 44px; padding: 0; font: 700 1.05rem/1 var(--mono); }
+.faction-actions [aria-disabled="true"] { background: #161b13; color: var(--muted); opacity: .65; cursor: default; }
+
 dialog { width: min(510px, calc(100% - 2rem)); max-height: calc(100% - 2rem); padding: 0; color: inherit; background: #22291e; border: 4px solid #282b22; outline: 1px solid var(--bronze); box-shadow: inset 0 0 0 1px var(--line), 0 18px 90px #000a; }
 dialog::backdrop { background: #090d08cc; }
 .dialog-body { padding: 1.25rem; }
@@ -288,7 +328,7 @@ legend { padding-inline: .25rem; }
   .brand { gap: .45rem; }
   .insignia { width: 30px; height: 30px; }
   .topbar-actions :is(button, .button) { padding-inline: .55rem; }
-  .hub-grid { grid-template-columns: 1fr; }
+  .hub-grid, .faction-list { grid-template-columns: 1fr; }
   .hub-link { min-height: 0; }
   .rules-hub { width: calc(100% - 1rem); height: calc(100dvh - 1rem); max-height: calc(100% - 1rem); }
   .rules-header, .rules-tabs, .rules-scroll { padding-inline: .8rem; }

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Influence | BattleTech Campaign</title>
+  <link rel="stylesheet" href="styles.css?v=handouts-influence-1">
+  <script src="preview.js?v=handouts-influence-1" defer></script>
+  <script src="influence.js?v=handouts-influence-1" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="BattleTech Campaign home">
+        <span class="insignia" aria-hidden="true"><i></i></span>
+        <span>BattleTech <small>Campaign</small></span>
+      </a>
+      <div class="topbar-actions"><a class="button" href="index.html">Hub</a></div>
+    </div>
+  </header>
+
+  <main id="influence-page" class="shell hub-shell" hidden>
+    <section class="sheet-header" aria-labelledby="influence-title">
+      <div>
+        <h1 id="influence-title">Influence</h1>
+        <p class="hub-account">Shared faction standings</p>
+      </div>
+      <button id="add-faction" class="primary" type="button" hidden>Add faction</button>
+    </section>
+    <div id="faction-list" class="faction-list"></div>
+    <p id="no-factions" class="hub-panel" hidden>No factions have been added.</p>
+    <p id="influence-status" class="hub-status" role="status"></p>
+  </main>
+
+  <dialog id="faction-editor" aria-labelledby="faction-editor-title">
+    <form id="faction-form" class="dialog-body record-editor">
+      <h2 id="faction-editor-title">Add faction</h2>
+      <label>Faction name <input name="faction" required maxlength="100"></label>
+      <p id="faction-status" class="hub-status" role="status"></p>
+      <div class="dialog-actions">
+        <button type="button" id="cancel-faction">Cancel</button>
+        <button type="submit" class="primary">Add faction</button>
+      </div>
+    </form>
+  </dialog>
+
+  <template id="faction-template">
+    <article class="faction-card">
+      <h2 tabindex="-1"></h2>
+      <div class="influence-track" aria-hidden="true"></div>
+      <p class="influence-score"></p>
+      <div class="faction-actions" hidden>
+        <button type="button" data-shift="-1">−</button>
+        <button type="button" data-shift="1">+</button>
+        <button type="button" class="remove-faction danger">Remove</button>
+      </div>
+    </article>
+  </template>
+</body>
+</html>
