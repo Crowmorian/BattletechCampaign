@@ -162,11 +162,13 @@ footer { color: var(--muted); font-size: .875rem; padding: 1.5rem 0; }
 .hub-account { margin-top: .45rem; color: var(--muted); }
 .hub-panel h2 { font: 600 1.4rem/1.2 var(--display); }
 .hub-panel > p { margin-top: .75rem; color: var(--muted); }
-.hub-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+.hub-grid { --hub-gap: .8rem; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--hub-gap); }
 .hub-link {
   display: grid;
+  flex: 0 0 calc((100% - 2 * var(--hub-gap)) / 3);
   align-content: start;
   gap: .55rem;
+  min-width: 0;
   min-height: 125px;
   padding: 1rem;
   border: 1px solid var(--bronze);
@@ -230,7 +232,7 @@ footer { color: var(--muted); font-size: .875rem; padding: 1.5rem 0; }
 .editor-images { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
 .editor-images li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; overflow-wrap: anywhere; }
 
-.faction-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; margin-top: 1.5rem; }
+.faction-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: .85rem; margin-top: 1.5rem; }
 .faction-card {
   min-width: 0;
   padding: 1.15rem .75rem;
@@ -328,8 +330,7 @@ legend { padding-inline: .25rem; }
   .brand { gap: .45rem; }
   .insignia { width: 30px; height: 30px; }
   .topbar-actions :is(button, .button) { padding-inline: .55rem; }
-  .hub-grid, .faction-list { grid-template-columns: 1fr; }
-  .hub-link { min-height: 0; }
+  .hub-link { flex-basis: 100%; min-height: 0; }
   .rules-hub { width: calc(100% - 1rem); height: calc(100dvh - 1rem); max-height: calc(100% - 1rem); }
   .rules-header, .rules-tabs, .rules-scroll { padding-inline: .8rem; }
   .rules-tabs button { flex: 1; padding-inline: .45rem; }
