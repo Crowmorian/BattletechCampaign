@@ -46,7 +46,7 @@
   });
 
   if (isGM) {
-    document.getElementById('overview-description').textContent = 'Edit the overview and current goals.';
+    document.getElementById('contracts-description').textContent = 'Manage offers, the current contract, and objectives.';
     for (const key of Object.keys(companies)) {
       const link = document.createElement('a');
       link.className = 'button';

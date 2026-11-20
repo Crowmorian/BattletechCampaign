@@ -1,7 +1,7 @@
 const campaignPreview = (() => {
   const accountKey = 'battletech-preview-account';
   const rosterKey = 'battletech-player-sheet-v1';
-  const overviewKey = 'battletech-preview-overview';
+  const contractsKey = 'battletech-preview-contracts';
   const companies = { rook: 'Rook Company', kestrel: 'Kestrel Lance' };
 
   function read(key) {
@@ -42,7 +42,15 @@ const campaignPreview = (() => {
     signOut: () => localStorage.removeItem(accountKey),
     readRosters: () => read(rosterKey),
     saveRosters: (value) => write(rosterKey, value),
-    readOverview: () => read(overviewKey) ?? { overview: '', goals: [] },
-    saveOverview: (value) => write(overviewKey, value),
+    readContracts: () => read(contractsKey),
+    saveContracts: (value) => write(contractsKey, value),
+    watchContracts: (refresh) => {
+      window.addEventListener('storage', (event) => {
+        if (event.key === contractsKey || event.key === null) refresh();
+      });
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) refresh();
+      });
+    },
   };
 })();
