@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Handouts | BattleTech Campaign</title>
   <link rel="stylesheet" href="styles.css?v=handouts-influence-1">
-  <script src="preview.js?v=handouts-influence-1" defer></script>
-  <script src="handouts.js?v=handouts-influence-1" defer></script>
+  <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
+  <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
+  <script src="handouts.js?v=supabase-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -19,7 +20,7 @@
     </div>
   </header>
 
-  <main id="handouts-page" class="shell hub-shell" hidden>
+  <main id="handouts-page" class="shell hub-shell">
     <section class="sheet-header" aria-labelledby="handouts-title">
       <h1 id="handouts-title">Handouts</h1>
     </section>

@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Influence | BattleTech Campaign</title>
   <link rel="stylesheet" href="styles.css?v=hub-layout-1">
-  <script src="preview.js?v=handouts-influence-1" defer></script>
-  <script src="influence.js?v=handouts-influence-1" defer></script>
+  <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
+  <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
+  <script src="influence.js?v=supabase-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -19,7 +20,7 @@
     </div>
   </header>
 
-  <main id="influence-page" class="shell hub-shell" hidden>
+  <main id="influence-page" class="shell hub-shell">
     <section class="sheet-header" aria-labelledby="influence-title">
       <div>
         <h1 id="influence-title">Influence</h1>
@@ -29,7 +30,7 @@
     </section>
     <div id="faction-list" class="faction-list"></div>
     <p id="no-factions" class="hub-panel" hidden>No factions have been added.</p>
-    <p id="influence-status" class="hub-status" role="status"></p>
+    <p id="influence-status" class="hub-status" role="status">Loading influence…</p>
   </main>
 
   <dialog id="faction-editor" aria-labelledby="faction-editor-title">

@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player sheet | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=campaign-hub-1">
-  <script src="preview.js?v=campaign-hub-1" defer></script>
-  <script src="app.js?v=campaign-hub-1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=supabase-1">
+  <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
+  <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
+  <script src="app.js?v=supabase-1" defer></script>
   <script src="rules/vendor/markdown-it-15.0.3.min.js" defer></script>
   <script src="rules/hub.js?v=campaign-hub-1" defer></script>
 </head>
@@ -57,7 +58,7 @@
       </section>
     </div>
 
-    <footer><span id="save-status" role="status">Local preview · Changes are saved in this browser.</span></footer>
+    <footer><span id="save-status" role="status">Loading roster…</span></footer>
   </main>
 
   <dialog id="rules-dialog" class="rules-hub" aria-labelledby="rules-title">
@@ -116,6 +117,7 @@
         <p class="legacy-criticals" hidden></p>
       </fieldset>
       <label class="check"><input name="inoperable" type="checkbox"> Inoperable</label>
+      <p id="unit-form-status" role="status"></p>
       <div class="dialog-actions">
         <button type="button" id="remove-unit" class="danger" hidden>Remove unit</button>
         <button type="button" id="cancel-editor">Cancel</button>

@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Campaign Hub | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=hub-layout-1">
-  <script src="preview.js?v=contracts-1" defer></script>
-  <script src="hub.js?v=contracts-1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=supabase-1">
+  <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
+  <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
+  <script src="hub.js?v=supabase-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -31,9 +32,12 @@
     </section>
 
     <section id="sign-in" class="hub-panel" aria-labelledby="sign-in-title" hidden>
-      <h2 id="sign-in-title">Sign in to the preview</h2>
-      <p>Choose a sample company or the GM account. Preview data is saved in this browser.</p>
-      <div id="account-options" class="account-options"></div>
+      <h2 id="sign-in-title">Sign in</h2>
+      <form id="sign-in-form" class="sign-in-form">
+        <label>Email <input name="email" type="email" autocomplete="username" required></label>
+        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit" class="primary">Sign in</button>
+      </form>
     </section>
 
     <nav id="hub-navigation" class="hub-grid" aria-label="Campaign pages" hidden>
@@ -44,12 +48,13 @@
       <a class="hub-link" href="handouts.html"><strong>Handouts</strong><span>Read current handouts and revisit past games.</span></a>
       <a class="hub-link" href="influence.html"><strong>Influence</strong><span>See the group’s standing with each faction.</span></a>
     </nav>
-    <p id="hub-status" class="hub-status" role="status"></p>
+    <p id="hub-status" class="hub-status" role="status">Checking sign-in…</p>
   </main>
 
   <dialog id="roster-picker" aria-labelledby="picker-title">
     <div class="dialog-body">
       <h2 id="picker-title">Choose a player roster</h2>
+      <p id="roster-picker-status" role="status" hidden></p>
       <div id="roster-options" class="account-options"></div>
       <form method="dialog" class="dialog-actions"><button type="submit">Close</button></form>
     </div>

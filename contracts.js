@@ -1,9 +1,8 @@
-(() => {
-  const account = campaignPreview.requireAccount();
+(async () => {
+  const account = await campaignApi.requireMember();
   if (!account) return;
-  campaignPreview.watchAccount(account);
 
-  const isGM = account === 'gm';
+  const isGM = account.role === 'gm';
   const byId = (id) => document.getElementById(id);
   const currentSection = byId('current-contract');
   const offerList = byId('contract-list');
@@ -20,30 +19,10 @@
     completed: { label: 'Completed', mark: '✓' },
     lost: { label: 'Lost', mark: '×' },
   };
-  const sampleData = {
-    currentId: null,
-    offers: [
-      {
-        id: 'cache-recovery', title: 'Supply Cache Recovery', reward: 12, visible: true,
-        briefing: 'Locate the abandoned supply cache and hold the area until the recovery crew can load it. Withdraw through the marked extraction zone.',
-        objectives: [
-          { id: 'secure-cache', name: 'Secure the supply cache', status: 'active' },
-          { id: 'escort-recovery', name: 'Escort the recovery crew to extraction', status: 'active' },
-        ],
-      },
-      {
-        id: 'border-patrol', title: 'Border Relay Patrol', reward: 8, visible: true,
-        briefing: 'Patrol the route between two relay stations and report any activity along the route.',
-        objectives: [],
-      },
-    ],
-  };
   let editedContractId = null;
   let renderedCurrentId = null;
-
-  function read() {
-    return campaignPreview.readContracts() ?? structuredClone(sampleData);
-  }
+  let loaded;
+  let pending = false;
 
   function getOffer(data, id) {
     return data.offers.find((offer) => offer.id === id);
@@ -53,23 +32,22 @@
     return getOffer(data, data.currentId);
   }
 
-  function update(change, message, feedback = status) {
-    if (campaignPreview.account() !== 'gm') return false;
-    const data = read();
-    if (!change(data)) {
-      render(data);
-      feedback.textContent = 'This contract changed. Check the current contract and try again.';
-      return false;
-    }
+  async function update(operation, message, feedback = status) {
+    if (pending) return false;
+    pending = true;
+    let saved = false;
     try {
-      campaignPreview.saveContracts(data);
+      await operation();
+      saved = true;
+      render(await campaignApi.readContracts());
+      status.textContent = message;
     } catch {
-      feedback.textContent = 'Browser storage is unavailable. Changes could not be saved.';
-      return false;
+      const output = saved ? status : feedback;
+      output.textContent = saved ? 'Change saved. Refresh to see the latest contracts.' : 'Could not save the change. Refresh and try again.';
+    } finally {
+      pending = false;
     }
-    render(data);
-    status.textContent = message;
-    return true;
+    return saved;
   }
 
   function rewardText(offer) {
@@ -92,24 +70,16 @@
 
     const toggle = entry.querySelector('.offer-visibility-toggle');
     toggle.textContent = offer.visible ? 'Hide from players' : 'Show to players';
-    toggle.addEventListener('click', () => {
-      const saved = update((data) => {
-        const latest = getOffer(data, offer.id);
-        if (!latest || data.currentId === offer.id || latest.visible !== offer.visible) return false;
-        latest.visible = !offer.visible;
-        return true;
-      }, offer.visible ? 'Contract hidden from players.' : 'Contract shown to players.');
-      if (saved) findOfferEntry(offer.id).querySelector('.offer-visibility-toggle').focus({ preventScroll: true });
+    toggle.addEventListener('click', async () => {
+      const saved = await update(() => campaignApi.showContract(offer.id, !offer.visible),
+        offer.visible ? 'Contract hidden from players.' : 'Contract shown to players.');
+      if (saved) findOfferEntry(offer.id)?.querySelector('.offer-visibility-toggle')?.focus({ preventScroll: true });
     });
 
     const activate = entry.querySelector('.offer-activate');
     activate.hidden = !offer.visible;
-    activate.addEventListener('click', () => {
-      const saved = update((data) => {
-        if (!getOffer(data, offer.id)?.visible) return false;
-        data.currentId = offer.id;
-        return true;
-      }, 'Current contract selected.');
+    activate.addEventListener('click', async () => {
+      const saved = await update(() => campaignApi.setCurrentContract(offer.id, renderedCurrentId), 'Current contract selected.');
       if (saved) byId('current-name').focus();
     });
     return entry;
@@ -129,19 +99,14 @@
     select.hidden = false;
     select.value = objective.status;
     select.setAttribute('aria-label', `Status for ${objective.name}`);
-    select.addEventListener('change', () => {
+    select.addEventListener('change', async () => {
       const next = select.value;
       if (!Object.hasOwn(objectiveStates, next)) return;
-      const saved = update((data) => {
-        if (data.currentId !== contractId) return false;
-        const latest = getCurrent(data)?.objectives.find((entry) => entry.id === objective.id);
-        if (!latest) return false;
-        latest.status = next;
-        return true;
-      }, 'Objective updated.');
+      if (renderedCurrentId !== contractId) return;
+      const saved = await update(() => campaignApi.setObjectiveStatus(objective.id, next, objective.status), 'Objective updated.');
       if (saved) {
         const updated = Array.from(objectiveList.children).find((entry) => entry.dataset.objectiveId === objective.id);
-        updated.querySelector('select').focus({ preventScroll: true });
+        updated?.querySelector('select')?.focus({ preventScroll: true });
       } else {
         select.value = objective.status;
       }
@@ -154,6 +119,7 @@
   }
 
   function render(data) {
+    loaded = data;
     const current = getCurrent(data);
     renderedCurrentId = current?.id ?? null;
     currentSection.hidden = !current;
@@ -174,7 +140,7 @@
   }
 
   function openEditor(id) {
-    const offer = getOffer(read(), id);
+    const offer = getOffer(loaded, id);
     if (id && !offer) return;
     editedContractId = id ?? null;
     contractForm.reset();
@@ -196,9 +162,8 @@
     return value;
   }
 
-  render(read());
-  campaignPreview.watchContracts(() => render(read()));
-  byId('contracts-page').hidden = false;
+  render(await campaignApi.readContracts());
+  status.textContent = '';
   if (!isGM) return;
 
   byId('new-contract').hidden = false;
@@ -214,7 +179,7 @@
     input.addEventListener('input', () => input.setCustomValidity(''));
   }
 
-  contractForm.addEventListener('submit', (event) => {
+  contractForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const fields = contractForm.elements;
     const title = readText(fields.title);
@@ -222,16 +187,10 @@
     const briefing = readText(fields.briefing);
     if (!briefing) return;
     const values = { title, briefing, reward: fields.reward.valueAsNumber };
-    const id = editedContractId ?? crypto.randomUUID();
-    const saved = update((data) => {
-      if (!editedContractId) {
-        data.offers.push({ ...values, id, visible: false, objectives: [] });
-        return true;
-      }
-      const offer = getOffer(data, id);
-      if (!offer) return false;
-      Object.assign(offer, values);
-      return true;
+    let id = editedContractId;
+    const saved = await update(async () => {
+      if (id) await campaignApi.editContract(id, values);
+      else id = (await campaignApi.createContract(values)).id;
     }, editedContractId ? 'Contract updated.' : 'Contract saved as a draft.', formStatus);
     if (!saved) return;
     contractDialog.close();
@@ -244,31 +203,23 @@
     }
   });
 
-  byId('clear-current').addEventListener('click', () => {
-    const contractId = renderedCurrentId;
-    const saved = update((data) => {
-      if (!contractId || data.currentId !== contractId) return false;
-      data.currentId = null;
-      return true;
-    }, 'Current contract cleared.');
+  byId('clear-current').addEventListener('click', async () => {
+    if (!renderedCurrentId) return;
+    const saved = await update(() => campaignApi.setCurrentContract(null, renderedCurrentId), 'Current contract cleared.');
     if (saved) byId('available-title').focus();
   });
 
-  byId('objective-form').addEventListener('submit', (event) => {
+  byId('objective-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const name = readText(objectiveInput);
     if (!name) return;
-    const contractId = renderedCurrentId;
-    const saved = update((data) => {
-      if (data.currentId !== contractId) return false;
-      const current = getCurrent(data);
-      if (!current) return false;
-      current.objectives.push({ id: crypto.randomUUID(), name, status: 'active' });
-      return true;
-    }, 'Objective added.');
+    if (!renderedCurrentId) return;
+    const saved = await update(() => campaignApi.addObjective(renderedCurrentId, name), 'Objective added.');
     if (saved) {
       objectiveInput.value = '';
       objectiveInput.focus();
     }
   });
-})();
+})().catch(() => {
+  document.getElementById('contract-status').textContent = 'Could not load the contracts. Try refreshing the page.';
+});

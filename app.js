@@ -1,375 +1,336 @@
-const previewStatus = 'Local preview · Changes are saved in this browser.';
-const criticalSystems = [
-  { key: 'engine', label: 'Engine', limit: 1, effect: '+1 Heat when firing weapons' },
-  { key: 'fireControl', label: 'Fire Control', limit: 4, effect: '+2 To-Hit each' },
-  { key: 'mp', label: 'MP', limit: 4, effect: '½ MV each' },
-  { key: 'weapons', label: 'Weapons', limit: 4, effect: '−1 Damage each' },
-];
-const legacyCriticalSystems = new Map([
-  ['Engine', 'engine'], ['Sensors', 'fireControl'], ['Movement', 'mp'], ['Weapons', 'weapons'],
-]);
-const unitTypes = { mech: 'BattleMech', vehicle: 'Vehicle', air: 'Air unit' };
+async function initializeRoster() {
+  const criticalSystems = [
+    { key: 'engine', label: 'Engine', limit: 1, effect: '+1 Heat when firing weapons' },
+    { key: 'fireControl', label: 'Fire Control', limit: 4, effect: '+2 To-Hit each' },
+    { key: 'mp', label: 'MP', limit: 4, effect: '½ MV each' },
+    { key: 'weapons', label: 'Weapons', limit: 4, effect: '−1 Damage each' },
+  ];
+  const unitTypes = { mech: 'BattleMech', vehicle: 'Vehicle', air: 'Air unit' };
 
-function sampleUnit(id, chassis, variant, armorTotal, armorRemaining, structureTotal,
-  structureRemaining, criticalHits = {}, inoperable = false) {
-  return { id, chassis, variant, type: 'mech', armorTotal, armorRemaining,
-    structureTotal, structureRemaining, criticalHits, inoperable };
-}
+  const byId = (id) => document.getElementById(id);
+  const saveStatus = byId('save-status');
+  const sheet = byId('sheet');
+  const supply = byId('supply');
+  const unitList = byId('unit-list');
+  const unitTemplate = byId('unit-template');
+  const criticalTemplate = byId('critical-row-template');
+  const criticalOptions = byId('critical-options');
+  const unitDialog = byId('unit-dialog');
+  const unitForm = byId('unit-form');
+  const fields = unitForm.elements;
+  const damageSteppers = [...unitForm.querySelectorAll('.number-stepper')].map((stepper) => ({
+    input: stepper.querySelector('input'),
+    minus: stepper.querySelector('[data-step="-1"]'),
+    plus: stepper.querySelector('[data-step="1"]'),
+  }));
+  const addUnit = byId('add-unit');
+  const removeUnit = byId('remove-unit');
+  const removeDialog = byId('remove-dialog');
+  const trackNames = ['armor', 'structure'];
 
-const preview = {
-  rosters: {
-    rook: {
-      name: 'Rook Company', supply: 18,
-      units: [
-        sampleUnit('rook-1', 'Hunchback', 'HBK-4G', 14, 14, 10, 10),
-        sampleUnit('rook-2', 'Shadow Hawk', 'SHD-2H', 13, 8, 10, 8, { fireControl: 2, weapons: 1 }),
-        sampleUnit('rook-3', 'Locust', 'LCT-1V', 12, 2, 6, 1, { engine: 1, mp: 2 }, true),
-      ],
-    },
-    kestrel: {
-      name: 'Kestrel Lance', supply: 14,
-      units: [sampleUnit('kestrel-1', 'Centurion', 'CN9-A', 13, 13, 10, 10)],
-    },
-  },
-};
+  const account = await campaignApi.requireMember();
+  if (!account) return;
+  const roster = await campaignApi.readRoster(account, new URLSearchParams(location.search).get('company'));
+  if (!roster) {
+    saveStatus.textContent = account.role === 'gm' ? 'Choose a roster from the Campaign Hub.' : 'Your account has no roster assigned yet.';
+    return;
+  }
+  const canEdit = account.role === 'player';
+  let editingId = null;
+  let criticalDraft = {};
+  let editingPending = false;
 
-const byId = (id) => document.getElementById(id);
-const saveStatus = byId('save-status');
-const sheet = byId('sheet');
-const supply = byId('supply');
-const unitList = byId('unit-list');
-const unitTemplate = byId('unit-template');
-const criticalTemplate = byId('critical-row-template');
-const criticalOptions = byId('critical-options');
-const unitDialog = byId('unit-dialog');
-const unitForm = byId('unit-form');
-const fields = unitForm.elements;
-const damageSteppers = [...unitForm.querySelectorAll('.number-stepper')].map((stepper) => ({
-  input: stepper.querySelector('input'),
-  minus: stepper.querySelector('[data-step="-1"]'),
-  plus: stepper.querySelector('[data-step="1"]'),
-}));
-const addUnit = byId('add-unit');
-const removeUnit = byId('remove-unit');
-const removeDialog = byId('remove-dialog');
-const trackNames = ['armor', 'structure'];
+  function renderSheet() {
+    byId('group-name').textContent = roster.name;
+    byId('sheet-mode').textContent = canEdit ? 'Player sheet' : 'GM view · Read only';
+    byId('supply-form').hidden = !canEdit;
+    byId('supply-readout').hidden = canEdit;
+    addUnit.hidden = !canEdit;
+    saveStatus.textContent = '';
+    supply.value = roster.supply;
+    byId('supply-balance').textContent = roster.supply;
+    if (!canEdit) byId('empty-roster').textContent = 'This roster has no units.';
+    renderUnits();
+    sheet.hidden = false;
+  }
 
-const account = campaignPreview.requireAccount();
-const rosterId = account === 'gm' ? new URLSearchParams(location.search).get('company') : account;
-const canEdit = Boolean(account && account !== 'gm');
-const state = readPreview();
-let editingId = null;
-let criticalDraft = {};
+  function renderRosterCount() {
+    const { units } = roster;
+    const available = units.filter((unit) => !unit.inoperable).length;
+    const unitLabel = units.length === 1 ? 'unit' : 'units';
+    byId('roster-count').textContent = `${units.length} ${unitLabel} · ${available} available`;
+    byId('empty-roster').hidden = units.length > 0;
+  }
 
-function readPreview() {
-  try {
-    const saved = campaignPreview.readRosters();
-    if (saved?.rosters?.rook && saved.rosters.kestrel) {
-      for (const roster of Object.values(saved.rosters)) {
-        for (const unit of roster.units) migrateCriticalHits(unit);
+  function renderUnits() {
+    unitList.replaceChildren(...roster.units.map(renderCard));
+    renderRosterCount();
+  }
+
+  function renderCard(unit) {
+    const card = unitTemplate.content.firstElementChild.cloneNode(true);
+    card.dataset.unitId = unit.id;
+    card.classList.toggle('inoperable', unit.inoperable);
+    const icon = card.querySelector('.unit-icon');
+    icon.alt = unitTypes[unit.type];
+    icon.src = `Assets/${unit.type}_icon.png`;
+    card.querySelector('h3').textContent = unit.chassis;
+    card.querySelector('.unit-variant').textContent = unit.variant;
+
+    for (const name of trackNames) {
+      const total = unit[`${name}Total`];
+      const remaining = unit[`${name}Remaining`];
+      const track = card.querySelector(`.${name}`);
+      const count = track.querySelector('.track-count');
+      count.textContent = `${remaining} / ${total}`;
+      count.setAttribute('aria-label', `${remaining} of ${total} intact`);
+      const pips = track.querySelector('.pips');
+      for (let index = 0; index < total; index += 1) {
+        const pip = document.createElement('span');
+        pip.className = index < remaining ? 'pip intact' : 'pip';
+        pips.append(pip);
       }
-      return saved;
     }
-  } catch {
-    // An unavailable or unreadable store can still use the sample rosters.
-  }
-  return preview;
-}
 
-function migrateCriticalHits(unit) {
-  if (!Array.isArray(unit.criticalHits)) return;
-  const hits = {};
-  const legacy = [];
-  for (const label of unit.criticalHits) {
-    const key = legacyCriticalSystems.get(label);
-    if (key) hits[key] = 1;
-    else legacy.push(label);
-  }
-  unit.criticalHits = hits;
-  if (legacy.length) unit.legacyCriticalHits = legacy;
-}
+    renderCriticalRows(card.querySelector('.critical-list'), unit.criticalHits);
+    showLegacyCriticals(card, unit.legacyCriticalHits);
 
-function save(message) {
-  try {
-    const latest = campaignPreview.readRosters();
-    campaignPreview.saveRosters({
-      ...latest,
-      rosters: { ...state.rosters, ...latest?.rosters, [rosterId]: activeRoster() },
+    if (!canEdit) {
+      card.querySelector('.card-actions').hidden = true;
+      const unitStatus = card.querySelector('.unit-status');
+      unitStatus.textContent = unit.inoperable ? 'Inoperable' : 'Available';
+      unitStatus.hidden = false;
+      return card;
+    }
+
+    const inoperable = card.querySelector('input');
+    inoperable.checked = unit.inoperable;
+    inoperable.setAttribute('aria-label', `Inoperable: ${unit.chassis} ${unit.variant}`);
+    inoperable.addEventListener('change', async () => {
+      const value = inoperable.checked;
+      inoperable.disabled = true;
+      try {
+        await campaignApi.setInoperable(unit.id, value);
+        unit.inoperable = value;
+        card.classList.toggle('inoperable', unit.inoperable);
+        renderRosterCount();
+        saveStatus.textContent = `${unit.chassis} status updated.`;
+      } catch {
+        inoperable.checked = unit.inoperable;
+        saveStatus.textContent = 'Could not save the unit status.';
+      } finally {
+        inoperable.disabled = false;
+      }
     });
-    saveStatus.textContent = `${message} ${previewStatus}`;
-  } catch {
-    saveStatus.textContent = `${message} Browser storage is unavailable. Changes last until you close or reload the page.`;
-  }
-}
 
-function activeRoster() {
-  return state.rosters[rosterId];
-}
-
-function renderSheet() {
-  const roster = activeRoster();
-  byId('group-name').textContent = roster.name;
-  byId('sheet-mode').textContent = canEdit ? 'Player sheet' : 'GM view · Read only';
-  byId('supply-form').hidden = !canEdit;
-  byId('supply-readout').hidden = canEdit;
-  addUnit.hidden = !canEdit;
-  saveStatus.hidden = !canEdit;
-  supply.value = roster.supply;
-  byId('supply-balance').textContent = roster.supply;
-  if (!canEdit) byId('empty-roster').textContent = 'This roster has no units.';
-  renderUnits();
-  sheet.hidden = false;
-}
-
-function canChangeRoster() {
-  return canEdit && campaignPreview.account() === account;
-}
-
-function renderRosterCount() {
-  const { units } = activeRoster();
-  const available = units.filter((unit) => !unit.inoperable).length;
-  const unitLabel = units.length === 1 ? 'unit' : 'units';
-  byId('roster-count').textContent = `${units.length} ${unitLabel} · ${available} available`;
-  byId('empty-roster').hidden = units.length > 0;
-}
-
-function renderUnits() {
-  unitList.replaceChildren(...activeRoster().units.map(renderCard));
-  renderRosterCount();
-}
-
-function renderCard(unit) {
-  const card = unitTemplate.content.firstElementChild.cloneNode(true);
-  card.dataset.unitId = unit.id;
-  card.classList.toggle('inoperable', unit.inoperable);
-  const icon = card.querySelector('.unit-icon');
-  icon.alt = unitTypes[unit.type];
-  icon.src = `Assets/${unit.type}_icon.png`;
-  card.querySelector('h3').textContent = unit.chassis;
-  card.querySelector('.unit-variant').textContent = unit.variant;
-
-  for (const name of trackNames) {
-    const total = unit[`${name}Total`];
-    const remaining = unit[`${name}Remaining`];
-    const track = card.querySelector(`.${name}`);
-    const count = track.querySelector('.track-count');
-    count.textContent = `${remaining} / ${total}`;
-    count.setAttribute('aria-label', `${remaining} of ${total} intact`);
-    const pips = track.querySelector('.pips');
-    for (let index = 0; index < total; index += 1) {
-      const pip = document.createElement('span');
-      pip.className = index < remaining ? 'pip intact' : 'pip';
-      pips.append(pip);
-    }
-  }
-
-  renderCriticalRows(card.querySelector('.critical-list'), unit.criticalHits);
-  showLegacyCriticals(card, unit.legacyCriticalHits);
-
-  if (!canEdit) {
-    card.querySelector('.card-actions').hidden = true;
-    const unitStatus = card.querySelector('.unit-status');
-    unitStatus.textContent = unit.inoperable ? 'Inoperable' : 'Available';
-    unitStatus.hidden = false;
+    const edit = card.querySelector('.card-actions button');
+    edit.setAttribute('aria-label', `Edit ${unit.chassis} ${unit.variant}`);
+    edit.addEventListener('click', () => openEditor(unit));
     return card;
   }
 
-  const inoperable = card.querySelector('input');
-  inoperable.checked = unit.inoperable;
-  inoperable.setAttribute('aria-label', `Inoperable: ${unit.chassis} ${unit.variant}`);
-  inoperable.addEventListener('change', () => {
-    if (!canChangeRoster()) return;
-    unit.inoperable = inoperable.checked;
-    card.classList.toggle('inoperable', unit.inoperable);
-    renderRosterCount();
-    save(`${unit.chassis} status updated.`);
-  });
-
-  const edit = card.querySelector('.card-actions button');
-  edit.setAttribute('aria-label', `Edit ${unit.chassis} ${unit.variant}`);
-  edit.addEventListener('click', () => openEditor(unit));
-  return card;
-}
-
-function renderCriticalRows(list, hits, editable = false) {
-  const rows = criticalSystems.map(({ key, label, limit, effect }) => {
-    const row = criticalTemplate.content.firstElementChild.cloneNode(true);
-    const readout = row.querySelector('.critical-count');
-    const pips = row.querySelector('.critical-pips');
-    const minus = row.querySelector('.critical-minus');
-    const plus = row.querySelector('.critical-plus');
-    row.querySelector('.critical-name').textContent = label;
-    row.querySelector('.critical-effect').textContent = effect;
-    for (let index = 0; index < limit; index += 1) {
-      const pip = document.createElement('span');
-      pip.className = 'critical-pip';
-      pips.append(pip);
-    }
-
-    function update() {
-      const count = hits[key] ?? 0;
-      readout.textContent = `${label}: ${count} of ${limit} hits`;
-      row.classList.toggle('has-hits', count > 0);
-      Array.from(pips.children).forEach((pip, index) => {
-        pip.classList.toggle('filled', index < count);
-      });
-      if (editable) {
-        minus.setAttribute('aria-disabled', String(count === 0));
-        plus.setAttribute('aria-disabled', String(count === limit));
+  function renderCriticalRows(list, hits, editable = false) {
+    const rows = criticalSystems.map(({ key, label, limit, effect }) => {
+      const row = criticalTemplate.content.firstElementChild.cloneNode(true);
+      const readout = row.querySelector('.critical-count');
+      const pips = row.querySelector('.critical-pips');
+      const minus = row.querySelector('.critical-minus');
+      const plus = row.querySelector('.critical-plus');
+      row.querySelector('.critical-name').textContent = label;
+      row.querySelector('.critical-effect').textContent = effect;
+      for (let index = 0; index < limit; index += 1) {
+        const pip = document.createElement('span');
+        pip.className = 'critical-pip';
+        pips.append(pip);
       }
-    }
 
-    if (editable) {
-      readout.setAttribute('role', 'status');
-      for (const [button, delta, action] of [[minus, -1, 'Remove'], [plus, 1, 'Add']]) {
-        button.hidden = false;
-        button.setAttribute('aria-label', `${action} ${label} hit`);
-        button.addEventListener('click', () => {
-          if (button.getAttribute('aria-disabled') === 'true') return;
-          hits[key] = (hits[key] ?? 0) + delta;
-          update();
+      function update() {
+        const count = hits[key] ?? 0;
+        readout.textContent = `${label}: ${count} of ${limit} hits`;
+        row.classList.toggle('has-hits', count > 0);
+        Array.from(pips.children).forEach((pip, index) => {
+          pip.classList.toggle('filled', index < count);
         });
+        if (editable) {
+          minus.setAttribute('aria-disabled', String(count === 0));
+          plus.setAttribute('aria-disabled', String(count === limit));
+        }
       }
-    }
 
-    update();
-    return row;
-  });
-  list.replaceChildren(...rows);
-}
+      if (editable) {
+        readout.setAttribute('role', 'status');
+        for (const [button, delta, action] of [[minus, -1, 'Remove'], [plus, 1, 'Add']]) {
+          button.hidden = false;
+          button.setAttribute('aria-label', `${action} ${label} hit`);
+          button.addEventListener('click', () => {
+            if (button.getAttribute('aria-disabled') === 'true') return;
+            hits[key] = (hits[key] ?? 0) + delta;
+            update();
+          });
+        }
+      }
 
-function showLegacyCriticals(container, hits = []) {
-  const note = container.querySelector('.legacy-criticals');
-  note.hidden = hits.length === 0;
-  note.textContent = hits.length ? `Earlier entries: ${hits.join(', ')}` : '';
-}
-
-function openEditor(unit) {
-  if (!canChangeRoster()) return;
-  unitForm.reset();
-  editingId = unit?.id ?? null;
-  byId('editor-title').textContent = unit ? 'Edit unit' : 'Add unit';
-  removeUnit.hidden = !unit;
-  for (const name of ['chassis', 'variant', 'type']) {
-    fields.namedItem(name).value = unit?.[name] ?? (name === 'type' ? 'mech' : '');
-  }
-  for (const name of trackNames) {
-    fields.namedItem(`${name}Total`).value = unit?.[`${name}Total`] ?? '';
-    fields.namedItem(`${name}Remaining`).value = unit?.[`${name}Remaining`] ?? '';
-  }
-  fields.inoperable.checked = unit?.inoperable ?? false;
-  criticalDraft = { ...unit?.criticalHits };
-  renderCriticalRows(criticalOptions, criticalDraft, true);
-  showLegacyCriticals(unitForm, unit?.legacyCriticalHits);
-  updateEditorValidity();
-  unitDialog.showModal();
-  fields.chassis.focus();
-}
-
-function updateEditorValidity() {
-  for (const name of trackNames) {
-    const total = fields.namedItem(`${name}Total`);
-    const remaining = fields.namedItem(`${name}Remaining`);
-    remaining.max = total.value;
-    const tooHigh = !Number.isNaN(total.valueAsNumber) && remaining.valueAsNumber > total.valueAsNumber;
-    remaining.setCustomValidity(tooHigh ? `Remaining ${name} must be at most ${total.value}.` : '');
-  }
-  for (const { input, minus, plus } of damageSteppers) {
-    const value = input.valueAsNumber;
-    const max = input.max === '' ? Infinity : Number(input.max);
-    minus.setAttribute('aria-disabled', String(Number.isNaN(value) || value <= Number(input.min)));
-    plus.setAttribute('aria-disabled', String((value || 0) >= max));
-  }
-  for (const name of ['chassis', 'variant']) {
-    const field = fields.namedItem(name);
-    field.setCustomValidity(field.value && !field.value.trim() ? 'Enter a value.' : '');
-  }
-}
-
-for (const { input, minus, plus } of damageSteppers) {
-  for (const [button, step] of [[minus, 'stepDown'], [plus, 'stepUp']]) {
-    button.addEventListener('click', () => {
-      if (button.getAttribute('aria-disabled') === 'true') return;
-      input[step]();
-      updateEditorValidity();
+      update();
+      return row;
     });
+    list.replaceChildren(...rows);
   }
-}
 
-byId('supply-form').addEventListener('submit', (event) => {
-  event.preventDefault();
-  if (!canChangeRoster()) return;
-  const balance = supply.valueAsNumber;
-  if (!Number.isSafeInteger(balance)) {
-    supply.setCustomValidity('Enter a whole number within the supported range.');
-    supply.reportValidity();
-    return;
+  function showLegacyCriticals(container, hits = []) {
+    const note = container.querySelector('.legacy-criticals');
+    note.hidden = hits.length === 0;
+    note.textContent = hits.length ? `Earlier entries: ${hits.join(', ')}` : '';
   }
-  activeRoster().supply = balance;
-  save('Supply points updated.');
-});
-supply.addEventListener('input', () => supply.setCustomValidity(''));
 
-addUnit.addEventListener('click', () => openEditor());
-byId('cancel-editor').addEventListener('click', () => unitDialog.close());
-unitForm.addEventListener('input', updateEditorValidity);
-unitForm.addEventListener('submit', (event) => {
-  event.preventDefault();
-  if (!canChangeRoster()) return;
-  updateEditorValidity();
-  if (!unitForm.reportValidity()) return;
-
-  const data = new FormData(unitForm);
-  const units = activeRoster().units;
-  const unitIndex = units.findIndex((entry) => entry.id === editingId);
-  const existing = units[unitIndex];
-  const id = existing?.id ?? `unit-${crypto.getRandomValues(new Uint32Array(2)).join('-')}`;
-  const unit = {
-    ...existing,
-    id,
-    chassis: data.get('chassis').trim(),
-    variant: data.get('variant').trim(),
-    type: data.get('type'),
-    armorTotal: Number(data.get('armorTotal')),
-    armorRemaining: Number(data.get('armorRemaining')),
-    structureTotal: Number(data.get('structureTotal')),
-    structureRemaining: Number(data.get('structureRemaining')),
-    criticalHits: criticalDraft,
-    inoperable: data.has('inoperable'),
-  };
-  if (existing) {
-    units[unitIndex] = unit;
-  } else {
-    units.push(unit);
+  function openEditor(unit) {
+    if (!canEdit || editingPending) return;
+    byId('unit-form-status').textContent = '';
+    unitForm.reset();
+    editingId = unit?.id ?? null;
+    byId('editor-title').textContent = unit ? 'Edit unit' : 'Add unit';
+    removeUnit.hidden = !unit;
+    for (const name of ['chassis', 'variant', 'type']) {
+      fields.namedItem(name).value = unit?.[name] ?? (name === 'type' ? 'mech' : '');
+    }
+    for (const name of trackNames) {
+      fields.namedItem(`${name}Total`).value = unit?.[`${name}Total`] ?? '';
+      fields.namedItem(`${name}Remaining`).value = unit?.[`${name}Remaining`] ?? '';
+    }
+    fields.inoperable.checked = unit?.inoperable ?? false;
+    criticalDraft = { ...unit?.criticalHits };
+    renderCriticalRows(criticalOptions, criticalDraft, true);
+    showLegacyCriticals(unitForm, unit?.legacyCriticalHits);
+    updateEditorValidity();
+    unitDialog.showModal();
+    fields.chassis.focus();
   }
-  unitDialog.close();
-  renderUnits();
-  const card = Array.from(unitList.children).find((entry) => entry.dataset.unitId === id);
-  card.querySelector('.card-actions button').focus();
-  save(`${unit.chassis} saved.`);
-});
 
-removeUnit.addEventListener('click', () => {
-  if (!canChangeRoster()) return;
-  const unit = activeRoster().units.find((entry) => entry.id === editingId);
-  byId('remove-description').textContent = `Remove ${unit.chassis} ${unit.variant} from this roster?`;
-  removeDialog.returnValue = '';
-  removeDialog.showModal();
-});
+  function updateEditorValidity() {
+    for (const name of trackNames) {
+      const total = fields.namedItem(`${name}Total`);
+      const remaining = fields.namedItem(`${name}Remaining`);
+      remaining.max = total.value;
+      const tooHigh = !Number.isNaN(total.valueAsNumber) && remaining.valueAsNumber > total.valueAsNumber;
+      remaining.setCustomValidity(tooHigh ? `Remaining ${name} must be at most ${total.value}.` : '');
+    }
+    for (const { input, minus, plus } of damageSteppers) {
+      const value = input.valueAsNumber;
+      const max = input.max === '' ? Infinity : Number(input.max);
+      minus.setAttribute('aria-disabled', String(Number.isNaN(value) || value <= Number(input.min)));
+      plus.setAttribute('aria-disabled', String((value || 0) >= max));
+    }
+    for (const name of ['chassis', 'variant']) {
+      const field = fields.namedItem(name);
+      field.setCustomValidity(field.value && !field.value.trim() ? 'Enter a value.' : '');
+    }
+  }
 
-removeDialog.addEventListener('close', () => {
-  if (removeDialog.returnValue !== 'remove' || !canChangeRoster()) return;
-  const roster = activeRoster();
-  roster.units = roster.units.filter((unit) => unit.id !== editingId);
-  unitDialog.close();
-  renderUnits();
-  addUnit.focus();
-  save('Unit removed.');
-});
+  for (const { input, minus, plus } of damageSteppers) {
+    for (const [button, step] of [[minus, 'stepDown'], [plus, 'stepUp']]) {
+      button.addEventListener('click', () => {
+        if (button.getAttribute('aria-disabled') === 'true') return;
+        input[step]();
+        updateEditorValidity();
+      });
+    }
+  }
 
-if (Object.hasOwn(campaignPreview.companies, rosterId)) {
+  byId('supply-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!canEdit) return;
+    const balance = supply.valueAsNumber;
+    if (!Number.isSafeInteger(balance)) {
+      supply.setCustomValidity('Enter a whole number within the supported range.');
+      supply.reportValidity();
+      return;
+    }
+    const submit = event.currentTarget.querySelector('[type="submit"]');
+    if (submit.disabled) return;
+    submit.disabled = true;
+    try {
+      await campaignApi.saveSupply(roster.id, balance);
+      roster.supply = balance;
+      saveStatus.textContent = 'Supply points updated.';
+    } catch {
+      saveStatus.textContent = 'Could not save supply points.';
+    } finally {
+      submit.disabled = false;
+    }
+  });
+  supply.addEventListener('input', () => supply.setCustomValidity(''));
+
+  addUnit.addEventListener('click', () => openEditor());
+  byId('cancel-editor').addEventListener('click', () => unitDialog.close());
+  unitForm.addEventListener('input', updateEditorValidity);
+  unitForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!canEdit || editingPending) return;
+    updateEditorValidity();
+    if (!unitForm.reportValidity()) return;
+
+    const data = new FormData(unitForm);
+    const units = roster.units;
+    const unitIndex = units.findIndex((entry) => entry.id === editingId);
+    const existing = units[unitIndex];
+    const unit = {
+      ...existing,
+      chassis: data.get('chassis').trim(),
+      variant: data.get('variant').trim(),
+      type: data.get('type'),
+      armorTotal: Number(data.get('armorTotal')),
+      armorRemaining: Number(data.get('armorRemaining')),
+      structureTotal: Number(data.get('structureTotal')),
+      structureRemaining: Number(data.get('structureRemaining')),
+      criticalHits: criticalDraft,
+      inoperable: data.has('inoperable'),
+    };
+    const submit = unitForm.querySelector('[type="submit"]');
+    editingPending = submit.disabled = true;
+    try {
+      const saved = await campaignApi.saveUnit(roster.id, unit, existing?.id);
+      if (existing) units[unitIndex] = saved;
+      else units.push(saved);
+      unitDialog.close();
+      renderUnits();
+      const card = Array.from(unitList.children).find((entry) => entry.dataset.unitId === saved.id);
+      card.querySelector('.card-actions button').focus();
+      saveStatus.textContent = `${saved.chassis} saved.`;
+    } catch {
+      byId('unit-form-status').textContent = 'Could not save this unit. Try again.';
+    } finally {
+      editingPending = submit.disabled = false;
+    }
+  });
+
+  removeUnit.addEventListener('click', () => {
+    if (!canEdit || editingPending) return;
+    const unit = roster.units.find((entry) => entry.id === editingId);
+    byId('remove-description').textContent = `Remove ${unit.chassis} ${unit.variant} from this roster?`;
+    removeDialog.returnValue = '';
+    removeDialog.showModal();
+  });
+
+  removeDialog.addEventListener('close', async () => {
+    if (removeDialog.returnValue !== 'remove' || !canEdit || editingPending) return;
+    const id = editingId;
+    editingPending = true;
+    try {
+      await campaignApi.removeUnit(roster.id, id);
+      roster.units = roster.units.filter((unit) => unit.id !== id);
+      unitDialog.close();
+      renderUnits();
+      addUnit.focus();
+      saveStatus.textContent = 'Unit removed.';
+    } catch {
+      byId('unit-form-status').textContent = 'Could not remove this unit. Try again.';
+    } finally {
+      editingPending = false;
+    }
+  });
+
   renderSheet();
-  campaignPreview.watchAccount(account);
-} else if (account) {
-  location.replace('index.html');
 }
+
+initializeRoster().catch(() => {
+  document.getElementById('save-status').textContent = 'Could not load this roster. Try refreshing the page.';
+});

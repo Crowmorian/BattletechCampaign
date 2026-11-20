@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contracts | BattleTech Campaign</title>
   <link rel="stylesheet" href="styles.css?v=contracts-2">
-  <script src="preview.js?v=contracts-1" defer></script>
-  <script src="contracts.js?v=contracts-1" defer></script>
+  <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
+  <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
+  <script src="contracts.js?v=supabase-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -19,7 +20,7 @@
     </div>
   </header>
 
-  <main id="contracts-page" class="shell hub-shell" hidden>
+  <main id="contracts-page" class="shell hub-shell">
     <section class="sheet-header" aria-labelledby="contracts-title">
       <h1 id="contracts-title">Contracts</h1>
     </section>
@@ -57,7 +58,7 @@
       <div id="contract-list" class="contract-list"></div>
       <p id="empty-contracts" class="contract-empty" hidden>No contracts are available.</p>
     </section>
-    <p id="contract-status" class="hub-status" role="status"></p>
+    <p id="contract-status" class="hub-status" role="status">Loading contracts…</p>
   </main>
 
   <dialog id="contract-dialog" aria-labelledby="contract-editor-title">

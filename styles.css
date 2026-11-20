@@ -155,6 +155,7 @@ h1 { margin-top: .35rem; font: 600 clamp(1.9rem, 5vw, 3.1rem)/1.14 var(--display
 .inoperable .card-actions .check { color: #ffb0b4; }
 .empty, .hub-panel { padding: 1.5rem; background: var(--panel); border: 1px solid var(--bronze); box-shadow: inset 0 0 0 4px #0c110b; }
 .dialog-body > p { color: var(--muted); margin-top: .75rem; }
+#unit-form-status:empty { display: none; }
 footer { color: var(--muted); font-size: .875rem; padding: 1.5rem 0; }
 
 .hub-shell { max-width: 920px; padding-bottom: 2.5rem; }
@@ -162,6 +163,9 @@ footer { color: var(--muted); font-size: .875rem; padding: 1.5rem 0; }
 .hub-account { margin-top: .45rem; color: var(--muted); }
 .hub-panel h2 { font: 600 1.4rem/1.2 var(--display); }
 .hub-panel > p { margin-top: .75rem; color: var(--muted); }
+.sign-in-form { display: grid; gap: .75rem; max-width: 24rem; margin-top: 1rem; }
+.sign-in-form label { display: grid; gap: .3rem; }
+.sign-in-form button { justify-self: start; }
 .hub-grid { --hub-gap: .8rem; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--hub-gap); }
 .hub-link {
   display: grid;

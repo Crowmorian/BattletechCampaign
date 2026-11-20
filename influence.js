@@ -1,9 +1,8 @@
-(() => {
-  const account = campaignPreview.requireAccount();
+(async () => {
+  const account = await campaignApi.requireMember();
   if (!account) return;
-  campaignPreview.watchAccount(account);
 
-  const isGM = account === 'gm';
+  const isGM = account.role === 'gm';
   const byId = (id) => document.getElementById(id);
   const list = byId('faction-list');
   const template = byId('faction-template');
@@ -13,29 +12,25 @@
   const add = byId('add-faction');
   const status = byId('influence-status');
   const editorStatus = byId('faction-status');
-  const samples = [
-    { id: 'federated-suns', name: 'Federated Suns', score: 2 },
-    { id: 'free-worlds-league', name: 'Free Worlds League', score: 0 },
-    { id: 'draconis-combine', name: 'Draconis Combine', score: -2 },
-  ];
+  let pending = false;
 
-  function read() {
-    return campaignPreview.readInfluence() ?? structuredClone(samples);
-  }
-
-  function update(change, message, feedback = status) {
-    if (campaignPreview.account() !== 'gm') return false;
-    const factions = read();
-    if (!change(factions)) return false;
+  async function update(operation, message, feedback = status) {
+    if (pending) return false;
+    pending = true;
+    let saved = false;
     try {
-      campaignPreview.saveInfluence(factions);
-    } catch {
-      feedback.textContent = 'Browser storage is unavailable. Changes could not be saved.';
-      return false;
+      await operation();
+      saved = true;
+      render(await campaignApi.readInfluence());
+      status.textContent = message;
+    } catch (error) {
+      const output = saved ? status : feedback;
+      if (saved) output.textContent = 'Change saved. Refresh to see the latest standings.';
+      else output.textContent = error.code === '23505' ? 'That faction already has a card.' : 'Could not save that change. Refresh and try again.';
+    } finally {
+      pending = false;
     }
-    render(factions);
-    status.textContent = message;
-    return true;
+    return saved;
   }
 
   function findCard(id) {
@@ -63,27 +58,17 @@
       const delta = Number(button.dataset.shift);
       button.setAttribute('aria-disabled', String(Math.abs(faction.score + delta) > 5));
       button.setAttribute('aria-label', `${delta > 0 ? 'Increase' : 'Decrease'} influence with ${faction.name}`);
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
         if (button.getAttribute('aria-disabled') === 'true') return;
-        const saved = update((factions) => {
-          const latest = factions.find((entry) => entry.id === faction.id);
-          if (!latest || Math.abs(latest.score + delta) > 5) return false;
-          latest.score += delta;
-          return true;
-        }, `${faction.name} influence updated.`);
-        if (saved) findCard(faction.id).querySelector(`[data-shift="${delta}"]`).focus({ preventScroll: true });
+        const saved = await update(() => campaignApi.setInfluence(faction.id, faction.score + delta, faction.score), `${faction.name} influence updated.`);
+        if (saved) findCard(faction.id)?.querySelector(`[data-shift="${delta}"]`)?.focus({ preventScroll: true });
       });
     }
     const remove = card.querySelector('.remove-faction');
     remove.setAttribute('aria-label', `Remove ${faction.name}`);
-    remove.addEventListener('click', () => {
+    remove.addEventListener('click', async () => {
       if (!window.confirm(`Remove ${faction.name} from the shared standings?`)) return;
-      const saved = update((factions) => {
-        const index = factions.findIndex((entry) => entry.id === faction.id);
-        if (index < 0) return false;
-        factions.splice(index, 1);
-        return true;
-      }, `${faction.name} removed.`);
+      const saved = await update(() => campaignApi.removeFaction(faction.id), `${faction.name} removed.`);
       if (saved) add.focus();
     });
     return card;
@@ -94,9 +79,8 @@
     byId('no-factions').hidden = factions.length > 0;
   }
 
-  render(read());
-  campaignPreview.watchInfluence(() => render(read()));
-  byId('influence-page').hidden = false;
+  render(await campaignApi.readInfluence());
+  status.textContent = '';
   if (!isGM) return;
 
   add.hidden = false;
@@ -108,25 +92,20 @@
   });
   byId('cancel-faction').addEventListener('click', () => editor.close());
   name.addEventListener('input', () => name.setCustomValidity(''));
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const faction = { id: crypto.randomUUID(), name: name.value.trim(), score: 0 };
-    if (!faction.name) {
+    const factionName = name.value.trim();
+    if (!factionName) {
       name.setCustomValidity('Enter a faction name.');
       name.reportValidity();
       return;
     }
-    const saved = update((factions) => {
-      if (factions.some((entry) => entry.name.toLowerCase() === faction.name.toLowerCase())) {
-        name.setCustomValidity('That faction already has a card.');
-        name.reportValidity();
-        return false;
-      }
-      factions.push(faction);
-      return true;
-    }, `${faction.name} added.`, editorStatus);
+    let faction;
+    const saved = await update(async () => { faction = await campaignApi.addFaction(factionName); }, `${factionName} added.`, editorStatus);
     if (!saved) return;
     editor.close();
-    findCard(faction.id).querySelector('h2').focus();
+    findCard(faction.id)?.querySelector('h2')?.focus();
   });
-})();
+})().catch(() => {
+  document.getElementById('influence-status').textContent = 'Could not load the shared standings. Try refreshing the page.';
+});
