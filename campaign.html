@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contracts | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=contracts-2">
+  <link rel="stylesheet" href="styles.css?v=objectives-1">
   <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
-  <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
-  <script src="contracts.js?v=supabase-1" defer></script>
+  <script src="supabase/campaign-api.js?v=objectives-1" defer></script>
+  <script src="contracts.js?v=objectives-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -38,16 +38,7 @@
       </div>
       <p id="current-reward" class="contract-reward"></p>
       <p id="current-briefing" class="contract-briefing"></p>
-      <div class="contract-objectives">
-        <h3>Objectives</h3>
-        <ul id="objective-list" class="objective-list"></ul>
-        <p id="empty-objectives" class="contract-empty" hidden>No objectives have been added.</p>
-        <form id="objective-form" class="objective-form" hidden>
-          <label for="objective-name">New objective</label>
-          <input id="objective-name" type="text" required maxlength="180">
-          <button type="submit">Add objective</button>
-        </form>
-      </div>
+      <div id="current-objectives"></div>
     </section>
 
     <section class="hub-panel" aria-labelledby="available-title">
@@ -95,13 +86,30 @@
       <h4></h4>
       <div class="objective-controls">
         <span class="objective-status"><span class="objective-mark" aria-hidden="true"></span><span class="objective-state"></span></span>
-        <select hidden>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="lost">Lost</option>
-        </select>
+        <span class="objective-visibility" hidden></span>
+        <div class="objective-actions" hidden>
+          <select>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="lost">Lost</option>
+          </select>
+          <button type="button" class="objective-toggle"></button>
+        </div>
       </div>
     </li>
+  </template>
+  <template id="objectives-template">
+    <div class="contract-objectives">
+      <h3>Objectives</h3>
+      <p class="objective-note" hidden>Players see revealed objectives only while this contract is current.</p>
+      <ul class="objective-list"></ul>
+      <p class="contract-empty" hidden></p>
+      <form class="objective-form" hidden>
+        <label>New objective</label>
+        <input name="objective" type="text" required maxlength="180">
+        <button type="submit">Add objective</button>
+      </form>
+    </div>
   </template>
 </body>
 </html>

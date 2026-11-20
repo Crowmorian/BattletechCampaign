@@ -197,6 +197,7 @@ footer { color: var(--muted); font-size: .875rem; padding: 1.5rem 0; }
 .contract-reward, .hub-panel > .contract-reward { color: var(--gold); font-weight: 650; }
 .contract-objectives { margin-top: 1.25rem; padding-top: 1rem; border-top: 3px double var(--line); }
 .contract-objectives h3 { font: 600 1.2rem/1.2 var(--display); }
+.objective-note { margin-top: .45rem; color: var(--muted); font-size: .875rem; }
 .contract-list:not(:empty), .objective-list:not(:empty) { margin-top: .85rem; }
 .contract-empty { margin-top: .6rem; color: var(--muted); }
 .offer-title { overflow-wrap: anywhere; }
@@ -213,6 +214,8 @@ footer { color: var(--muted); font-size: .875rem; padding: 1.5rem 0; }
 .objective-card[data-status="completed"] .objective-status { color: #a9cf8c; }
 .objective-card[data-status="lost"] .objective-status { color: #ffb0b4; }
 .objective-controls select { width: auto; max-width: 100%; }
+.objective-visibility { color: var(--muted); font-size: .875rem; }
+.objective-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .objective-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .35rem .5rem; margin-top: .9rem; }
 .objective-form label { grid-column: 1 / -1; }
 .objective-form input { min-width: 0; }

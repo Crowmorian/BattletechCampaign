@@ -6,10 +6,10 @@
   const byId = (id) => document.getElementById(id);
   const currentSection = byId('current-contract');
   const offerList = byId('contract-list');
-  const objectiveList = byId('objective-list');
+  const currentObjectives = byId('current-objectives');
   const offerTemplate = byId('offer-template');
   const objectiveTemplate = byId('objective-template');
-  const objectiveInput = byId('objective-name');
+  const objectivesTemplate = byId('objectives-template');
   const contractDialog = byId('contract-dialog');
   const contractForm = byId('contract-form');
   const formStatus = byId('contract-form-status');
@@ -54,7 +54,7 @@
     return `${offer.reward.toLocaleString()} SP reward`;
   }
 
-  function makeOffer(offer) {
+  function makeOffer(offer, draft) {
     const entry = offerTemplate.content.firstElementChild.cloneNode(true);
     entry.dataset.contractId = offer.id;
     entry.querySelector('.offer-title').textContent = offer.title;
@@ -67,6 +67,7 @@
     visibility.textContent = offer.visible ? 'Visible to players' : 'Draft';
     entry.querySelector('.contract-actions').hidden = false;
     entry.querySelector('.offer-edit').addEventListener('click', () => openEditor(offer.id));
+    entry.querySelector('.rule-content').append(makeObjectives(offer, draft, true));
 
     const toggle = entry.querySelector('.offer-visibility-toggle');
     toggle.textContent = offer.visible ? 'Hide from players' : 'Show to players';
@@ -85,7 +86,7 @@
     return entry;
   }
 
-  function makeObjective(contractId, objective) {
+  function makeObjective(objective) {
     const card = objectiveTemplate.content.firstElementChild.cloneNode(true);
     card.dataset.objectiveId = objective.id;
     card.dataset.status = objective.status;
@@ -95,23 +96,78 @@
     card.querySelector('.objective-state').textContent = label;
     if (!isGM) return card;
 
+    card.querySelector('.objective-actions').hidden = false;
+    const visibility = card.querySelector('.objective-visibility');
+    visibility.hidden = false;
+    visibility.textContent = objective.visible ? 'Revealed' : 'Hidden';
+    const toggle = card.querySelector('.objective-toggle');
+    const action = objective.visible ? 'Hide' : 'Reveal';
+    toggle.textContent = action;
+    toggle.setAttribute('aria-label', `${action} ${objective.name}`);
+    toggle.addEventListener('click', async () => {
+      const visible = !objective.visible;
+      const saved = await update(() => campaignApi.showObjective(objective.id, visible),
+        visible ? 'Objective revealed.' : 'Objective hidden.');
+      if (saved) focusObjectiveControl(objective.id, '.objective-toggle');
+    });
+
     const select = card.querySelector('select');
-    select.hidden = false;
     select.value = objective.status;
     select.setAttribute('aria-label', `Status for ${objective.name}`);
     select.addEventListener('change', async () => {
       const next = select.value;
       if (!Object.hasOwn(objectiveStates, next)) return;
-      if (renderedCurrentId !== contractId) return;
       const saved = await update(() => campaignApi.setObjectiveStatus(objective.id, next, objective.status), 'Objective updated.');
       if (saved) {
-        const updated = Array.from(objectiveList.children).find((entry) => entry.dataset.objectiveId === objective.id);
-        updated?.querySelector('select')?.focus({ preventScroll: true });
+        focusObjectiveControl(objective.id, 'select');
       } else {
         select.value = objective.status;
       }
     });
     return card;
+  }
+
+  function focusObjectiveControl(id, selector) {
+    document.querySelector(`[data-objective-id="${CSS.escape(id)}"] ${selector}`)?.focus({ preventScroll: true });
+  }
+
+  function makeObjectives(contract, draft = '', planned = false) {
+    const panel = objectivesTemplate.content.firstElementChild.cloneNode(true);
+    const objectives = contract.objectives.filter((objective) => isGM || objective.visible);
+    panel.querySelector('.objective-list').append(...objectives.map(makeObjective));
+    const empty = panel.querySelector('.contract-empty');
+    empty.hidden = objectives.length > 0;
+    empty.textContent = isGM ? 'No objectives have been added.' : 'No objectives have been revealed.';
+    if (!isGM) return panel;
+
+    panel.querySelector('.objective-note').hidden = !planned;
+    const form = panel.querySelector('.objective-form');
+    const input = form.elements.objective;
+    const submit = form.querySelector('button');
+    form.hidden = false;
+    form.dataset.contractId = contract.id;
+    input.id = `objective-name-${contract.id}`;
+    form.querySelector('label').htmlFor = input.id;
+    input.value = draft;
+    input.addEventListener('input', () => input.setCustomValidity(''));
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (pending) return;
+      const name = readText(input);
+      if (!name) return;
+      submit.disabled = true;
+      input.readOnly = true;
+      const saved = await update(() => campaignApi.addObjective(contract.id, name), 'Hidden objective added.');
+      submit.disabled = false;
+      input.readOnly = false;
+      if (!saved) return;
+      const nextInput = byId(input.id);
+      if (nextInput) {
+        nextInput.value = '';
+        nextInput.focus({ preventScroll: true });
+      }
+    });
+    return panel;
   }
 
   function findOfferEntry(id) {
@@ -120,6 +176,8 @@
 
   function render(data) {
     loaded = data;
+    const drafts = new Map(Array.from(document.querySelectorAll('.objective-form[data-contract-id]'),
+      (form) => [form.dataset.contractId, form.elements.objective.value]));
     const current = getCurrent(data);
     renderedCurrentId = current?.id ?? null;
     currentSection.hidden = !current;
@@ -127,13 +185,14 @@
       byId('current-name').textContent = current.title;
       byId('current-reward').textContent = rewardText(current);
       byId('current-briefing').textContent = current.briefing;
-      byId('empty-objectives').hidden = current.objectives.length > 0;
-      objectiveList.replaceChildren(...current.objectives.map((objective) => makeObjective(current.id, objective)));
+      currentObjectives.replaceChildren(makeObjectives(current, drafts.get(current.id)));
+    } else {
+      currentObjectives.replaceChildren();
     }
 
     const openOffer = offerList.querySelector('details[open]')?.dataset.contractId;
     const offers = data.offers.filter((offer) => offer.id !== current?.id && (isGM || offer.visible));
-    offerList.replaceChildren(...offers.map(makeOffer));
+    offerList.replaceChildren(...offers.map((offer) => makeOffer(offer, drafts.get(offer.id))));
     const openEntry = findOfferEntry(openOffer);
     if (openEntry) openEntry.open = true;
     byId('empty-contracts').hidden = offers.length > 0;
@@ -168,14 +227,13 @@
 
   byId('new-contract').hidden = false;
   byId('current-actions').hidden = false;
-  byId('objective-form').hidden = false;
   byId('new-contract').addEventListener('click', () => openEditor());
   byId('edit-current').addEventListener('click', () => {
     if (renderedCurrentId) openEditor(renderedCurrentId);
   });
   byId('cancel-contract').addEventListener('click', () => contractDialog.close());
 
-  for (const input of [objectiveInput, contractForm.elements.title, contractForm.elements.briefing]) {
+  for (const input of [contractForm.elements.title, contractForm.elements.briefing]) {
     input.addEventListener('input', () => input.setCustomValidity(''));
   }
 
@@ -209,17 +267,6 @@
     if (saved) byId('available-title').focus();
   });
 
-  byId('objective-form').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const name = readText(objectiveInput);
-    if (!name) return;
-    if (!renderedCurrentId) return;
-    const saved = await update(() => campaignApi.addObjective(renderedCurrentId, name), 'Objective added.');
-    if (saved) {
-      objectiveInput.value = '';
-      objectiveInput.focus();
-    }
-  });
 })().catch(() => {
   document.getElementById('contract-status').textContent = 'Could not load the contracts. Try refreshing the page.';
 });
