@@ -1,4 +1,3 @@
-const storageKey = 'battletech-player-sheet-v1';
 const previewStatus = 'Local preview · Changes are saved in this browser.';
 const criticalSystems = [
   { key: 'engine', label: 'Engine', limit: 1, effect: '+1 Heat when firing weapons' },
@@ -18,7 +17,6 @@ function sampleUnit(id, chassis, variant, armorTotal, armorRemaining, structureT
 }
 
 const preview = {
-  active: 'rook',
   rosters: {
     rook: {
       name: 'Rook Company', supply: 18,
@@ -39,8 +37,6 @@ const byId = (id) => document.getElementById(id);
 const saveStatus = byId('save-status');
 const sheet = byId('sheet');
 const supply = byId('supply');
-const accountButton = byId('account-button');
-const accountDialog = byId('account-dialog');
 const unitList = byId('unit-list');
 const unitTemplate = byId('unit-template');
 const criticalTemplate = byId('critical-row-template');
@@ -58,13 +54,16 @@ const removeUnit = byId('remove-unit');
 const removeDialog = byId('remove-dialog');
 const trackNames = ['armor', 'structure'];
 
-let state = readPreview();
+const account = campaignPreview.requireAccount();
+const rosterId = account === 'gm' ? new URLSearchParams(location.search).get('company') : account;
+const canEdit = Boolean(account && account !== 'gm');
+const state = readPreview();
 let editingId = null;
 let criticalDraft = {};
 
 function readPreview() {
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey));
+    const saved = campaignPreview.readRosters();
     if (saved?.rosters?.rook && saved.rosters.kestrel) {
       for (const roster of Object.values(saved.rosters)) {
         for (const unit of roster.units) migrateCriticalHits(unit);
@@ -92,7 +91,11 @@ function migrateCriticalHits(unit) {
 
 function save(message) {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    const latest = campaignPreview.readRosters();
+    campaignPreview.saveRosters({
+      ...latest,
+      rosters: { ...state.rosters, ...latest?.rosters, [rosterId]: activeRoster() },
+    });
     saveStatus.textContent = `${message} ${previewStatus}`;
   } catch {
     saveStatus.textContent = `${message} Browser storage is unavailable. Changes last until you close or reload the page.`;
@@ -100,19 +103,26 @@ function save(message) {
 }
 
 function activeRoster() {
-  return state.rosters[state.active];
+  return state.rosters[rosterId];
 }
 
 function renderSheet() {
   const roster = activeRoster();
-  sheet.hidden = !roster;
-  byId('signed-out').hidden = Boolean(roster);
-  accountButton.textContent = roster ? 'Sign out' : 'Sign in';
-  if (roster) {
-    byId('group-name').textContent = roster.name;
-    supply.value = roster.supply;
-    renderUnits();
-  }
+  byId('group-name').textContent = roster.name;
+  byId('sheet-mode').textContent = canEdit ? 'Player sheet' : 'GM view · Read only';
+  byId('supply-form').hidden = !canEdit;
+  byId('supply-readout').hidden = canEdit;
+  addUnit.hidden = !canEdit;
+  saveStatus.hidden = !canEdit;
+  supply.value = roster.supply;
+  byId('supply-balance').textContent = roster.supply;
+  if (!canEdit) byId('empty-roster').textContent = 'This roster has no units.';
+  renderUnits();
+  sheet.hidden = false;
+}
+
+function canChangeRoster() {
+  return canEdit && campaignPreview.account() === account;
 }
 
 function renderRosterCount() {
@@ -156,10 +166,19 @@ function renderCard(unit) {
   renderCriticalRows(card.querySelector('.critical-list'), unit.criticalHits);
   showLegacyCriticals(card, unit.legacyCriticalHits);
 
+  if (!canEdit) {
+    card.querySelector('.card-actions').hidden = true;
+    const unitStatus = card.querySelector('.unit-status');
+    unitStatus.textContent = unit.inoperable ? 'Inoperable' : 'Available';
+    unitStatus.hidden = false;
+    return card;
+  }
+
   const inoperable = card.querySelector('input');
   inoperable.checked = unit.inoperable;
   inoperable.setAttribute('aria-label', `Inoperable: ${unit.chassis} ${unit.variant}`);
   inoperable.addEventListener('change', () => {
+    if (!canChangeRoster()) return;
     unit.inoperable = inoperable.checked;
     card.classList.toggle('inoperable', unit.inoperable);
     renderRosterCount();
@@ -226,6 +245,7 @@ function showLegacyCriticals(container, hits = []) {
 }
 
 function openEditor(unit) {
+  if (!canChangeRoster()) return;
   unitForm.reset();
   editingId = unit?.id ?? null;
   byId('editor-title').textContent = unit ? 'Edit unit' : 'Add unit';
@@ -276,37 +296,9 @@ for (const { input, minus, plus } of damageSteppers) {
   }
 }
 
-function openAccountPicker() {
-  accountDialog.showModal();
-}
-
-for (const [key, roster] of Object.entries(state.rosters)) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = roster.name;
-  button.addEventListener('click', () => {
-    state.active = key;
-    renderSheet();
-    accountDialog.close();
-    accountButton.focus();
-    save(`${roster.name} opened.`);
-  });
-  byId('account-options').append(button);
-}
-
-byId('open-account').addEventListener('click', openAccountPicker);
-accountButton.addEventListener('click', () => {
-  if (activeRoster()) {
-    state.active = null;
-    renderSheet();
-    save('Preview signed out.');
-  } else {
-    openAccountPicker();
-  }
-});
-
 byId('supply-form').addEventListener('submit', (event) => {
   event.preventDefault();
+  if (!canChangeRoster()) return;
   const balance = supply.valueAsNumber;
   if (!Number.isSafeInteger(balance)) {
     supply.setCustomValidity('Enter a whole number within the supported range.');
@@ -323,6 +315,7 @@ byId('cancel-editor').addEventListener('click', () => unitDialog.close());
 unitForm.addEventListener('input', updateEditorValidity);
 unitForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  if (!canChangeRoster()) return;
   updateEditorValidity();
   if (!unitForm.reportValidity()) return;
 
@@ -357,6 +350,7 @@ unitForm.addEventListener('submit', (event) => {
 });
 
 removeUnit.addEventListener('click', () => {
+  if (!canChangeRoster()) return;
   const unit = activeRoster().units.find((entry) => entry.id === editingId);
   byId('remove-description').textContent = `Remove ${unit.chassis} ${unit.variant} from this roster?`;
   removeDialog.returnValue = '';
@@ -364,7 +358,7 @@ removeUnit.addEventListener('click', () => {
 });
 
 removeDialog.addEventListener('close', () => {
-  if (removeDialog.returnValue !== 'remove') return;
+  if (removeDialog.returnValue !== 'remove' || !canChangeRoster()) return;
   const roster = activeRoster();
   roster.units = roster.units.filter((unit) => unit.id !== editingId);
   unitDialog.close();
@@ -373,4 +367,9 @@ removeDialog.addEventListener('close', () => {
   save('Unit removed.');
 });
 
-renderSheet();
+if (Object.hasOwn(campaignPreview.companies, rosterId)) {
+  renderSheet();
+  campaignPreview.watchAccount(account);
+} else if (account) {
+  location.replace('index.html');
+}

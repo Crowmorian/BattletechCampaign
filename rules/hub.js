@@ -16,9 +16,24 @@
   };
   const openButton = document.getElementById('rules-button');
   const dialog = document.getElementById('rules-dialog');
-  const tabList = dialog.querySelector('.rules-tabs');
+  const reader = document.querySelector('[data-rules-reader]');
+  reader.innerHTML = `
+    <div class="rules-tabs" role="tablist" aria-label="Rule sections">
+      <button id="campaign-tab" type="button" role="tab" aria-selected="true" aria-controls="campaign-panel">Campaign Rules</button>
+      <button id="alpha-strike-tab" type="button" role="tab" aria-selected="false" aria-controls="alpha-strike-panel" tabindex="-1">Alpha Strike</button>
+    </div>
+    <div class="rules-scroll">
+      <section id="campaign-panel" role="tabpanel" aria-labelledby="campaign-tab" tabindex="0">
+        <div class="rules-topics"></div>
+      </section>
+      <section id="alpha-strike-panel" role="tabpanel" aria-labelledby="alpha-strike-tab" tabindex="0" hidden>
+        <header class="rule-intro"><h3>Alpha Strike Rules Cheat Sheets</h3></header>
+        <div class="rules-topics"></div>
+      </section>
+    </div>`;
+  const tabList = reader.querySelector('.rules-tabs');
   const tabs = Array.from(tabList.querySelectorAll('[role="tab"]'));
-  const scroll = dialog.querySelector('.rules-scroll');
+  const scroll = reader.querySelector('.rules-scroll');
   const loadedPanels = new Set();
   let selected = tabs[0];
 
@@ -60,7 +75,7 @@
     const list = panel.querySelector('.rules-topics');
     list.replaceChildren(status);
     if (location.protocol === 'file:') {
-      status.textContent = 'Open the published player sheet or serve this folder over HTTP to read the rules.';
+      status.textContent = 'Open the published site or serve this folder over HTTP to read the rules.';
       return;
     }
     if (typeof window.markdownit !== 'function') {
@@ -92,7 +107,7 @@
     status.after(retry);
   }
 
-  function activate(tab) {
+  function activate(tab, focus = true) {
     if (selected !== tab) {
       for (const option of tabs) {
         const active = option === tab;
@@ -102,12 +117,13 @@
       }
       selected = tab;
       scroll.scrollTop = 0;
+      if (!dialog) window.scrollTo(0, 0);
     }
-    tab.focus();
+    if (focus) tab.focus();
     loadPanel(document.getElementById(tab.getAttribute('aria-controls')));
   }
 
-  openButton.addEventListener('click', () => {
+  openButton?.addEventListener('click', () => {
     dialog.showModal();
     activate(selected);
   });
@@ -125,4 +141,6 @@
     event.preventDefault();
     activate(tabs[next]);
   });
+
+  if (!dialog) activate(location.hash === '#alpha-strike' ? tabs[1] : tabs[0], false);
 })();

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaign overview | BattleTech Campaign</title>
+  <link rel="stylesheet" href="styles.css?v=campaign-hub-1">
+  <script src="preview.js?v=campaign-hub-1" defer></script>
+  <script src="campaign.js?v=campaign-hub-1" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="BattleTech Campaign home">
+        <span class="insignia" aria-hidden="true"><i></i></span>
+        <span>BattleTech <small>Campaign</small></span>
+      </a>
+      <div class="topbar-actions"><a class="button" href="index.html">Hub</a></div>
+    </div>
+  </header>
+
+  <main id="campaign-page" class="shell hub-shell" hidden>
+    <section class="sheet-header" aria-labelledby="campaign-title">
+      <h1 id="campaign-title">Campaign overview</h1>
+    </section>
+    <section class="hub-panel" aria-labelledby="current-overview-title">
+      <h2 id="current-overview-title">Overview</h2>
+      <p id="current-overview" class="overview-text"></p>
+      <h2>Current goals</h2>
+      <ul id="current-goals"></ul>
+      <p id="empty-goals" hidden>No goals have been set.</p>
+    </section>
+    <form id="campaign-editor" class="hub-panel campaign-editor" hidden>
+      <h2>Edit campaign overview</h2>
+      <label for="overview-input">Overview</label>
+      <textarea id="overview-input" rows="5"></textarea>
+      <label for="goals-input">Current goals <span>One goal per line</span></label>
+      <textarea id="goals-input" rows="5"></textarea>
+      <div class="campaign-actions">
+        <button type="submit" class="primary">Save changes</button>
+        <p id="campaign-status" role="status"></p>
+      </div>
+    </form>
+  </main>
+</body>
+</html>
