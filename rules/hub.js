@@ -12,6 +12,8 @@
     'alpha-strike-panel': [
       'alpha-strike/indirect-fire.md',
       'alpha-strike/melee-and-physical-attacks.md',
+      'alpha-strike/jumping-and-elevation.md',
+      'alpha-strike/battlefield-support.md',
     ],
   };
   const openButton = document.getElementById('rules-button');
