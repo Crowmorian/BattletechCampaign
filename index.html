@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player sheet | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=rules-hub-1">
+  <link rel="stylesheet" href="styles.css?v=rules-hub-2">
   <script src="app.js?v=rules-hub-1" defer></script>
   <script src="rules/vendor/markdown-it-15.0.3.min.js" defer></script>
-  <script src="rules/hub.js?v=rules-hub-1" defer></script>
+  <script src="rules/hub.js?v=rules-hub-2" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -70,8 +70,13 @@
       <button id="alpha-strike-tab" type="button" role="tab" aria-selected="false" aria-controls="alpha-strike-panel" tabindex="-1">Alpha Strike</button>
     </div>
     <div class="rules-scroll">
-      <section id="campaign-panel" role="tabpanel" aria-labelledby="campaign-tab" tabindex="0"></section>
-      <section id="alpha-strike-panel" role="tabpanel" aria-labelledby="alpha-strike-tab" tabindex="0" hidden></section>
+      <section id="campaign-panel" role="tabpanel" aria-labelledby="campaign-tab" tabindex="0">
+        <div class="rules-topics"></div>
+      </section>
+      <section id="alpha-strike-panel" role="tabpanel" aria-labelledby="alpha-strike-tab" tabindex="0" hidden>
+        <header class="rule-intro"><h3>Alpha Strike Rules Cheat Sheets</h3></header>
+        <div class="rules-topics"></div>
+      </section>
     </div>
   </dialog>
 

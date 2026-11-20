@@ -1,8 +1,8 @@
 (() => {
+  const campaignIntro = 'campaign/00-rules-of-engagement.md';
   // Add each new Markdown file here in the order it should appear in the hub.
   const topics = {
     'campaign-panel': [
-      'campaign/00-rules-of-engagement.md',
       'campaign/01-building-your-company.md',
       'campaign/02-damage-and-repairs.md',
       'campaign/03-money-and-contracts.md',
@@ -29,10 +29,11 @@
     const heading = /^#\s+([^\r\n]+)\r?\n/.exec(source);
     if (!heading) throw new Error(`Missing topic title in ${path}`);
 
-    const topic = document.createElement('details');
-    topic.className = 'rule-topic';
-    const summary = document.createElement('summary');
-    summary.textContent = heading[1].trim();
+    const isIntro = path === campaignIntro;
+    const topic = document.createElement(isIntro ? 'article' : 'details');
+    topic.className = isIntro ? 'rule-intro' : 'rule-topic';
+    const title = document.createElement(isIntro ? 'h3' : 'summary');
+    title.textContent = heading[1].trim();
     const content = document.createElement('div');
     content.className = 'rule-content';
     content.innerHTML = markdown.render(source.slice(heading[0].length));
@@ -41,11 +42,11 @@
       frame.className = 'rule-table';
       frame.tabIndex = 0;
       frame.setAttribute('role', 'region');
-      frame.setAttribute('aria-label', `Table ${index + 1} in ${summary.textContent}`);
+      frame.setAttribute('aria-label', `Table ${index + 1} in ${title.textContent}`);
       table.replaceWith(frame);
       frame.append(table);
     }
-    topic.append(summary, content);
+    topic.append(title, content);
     return topic;
   }
 
@@ -56,7 +57,8 @@
     const status = document.createElement('p');
     status.className = 'rules-status';
     status.setAttribute('role', 'status');
-    panel.replaceChildren(status);
+    const list = panel.querySelector('.rules-topics');
+    list.replaceChildren(status);
     if (location.protocol === 'file:') {
       status.textContent = 'Open the published player sheet or serve this folder over HTTP to read the rules.';
       return;
@@ -68,9 +70,11 @@
 
     status.textContent = 'Loading rules…';
     const markdown = window.markdownit({ html: false });
-    const results = await Promise.allSettled(topics[panel.id].map((path) => readTopic(path, markdown)));
+    const entries = topics[panel.id];
+    const sources = panel.id === 'campaign-panel' ? [campaignIntro, ...entries] : entries;
+    const results = await Promise.allSettled(sources.map((path) => readTopic(path, markdown)));
     const available = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
-    panel.append(...available);
+    list.append(...available);
     if (available.length === results.length) {
       status.remove();
       return;

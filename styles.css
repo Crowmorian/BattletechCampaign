@@ -189,6 +189,9 @@ legend { padding-inline: .25rem; }
 .rules-scroll { overflow: auto; overscroll-behavior: contain; padding: 1.1rem 1.25rem 1.5rem; }
 .rules-status { margin-bottom: .65rem; color: var(--muted); }
 .rules-scroll button + .rule-topic { margin-top: .7rem; }
+.rule-intro { margin-bottom: 1rem; padding: .85rem .9rem; border-bottom: 3px double var(--line); }
+.rule-intro h3 { color: var(--gold); font: 600 clamp(1.2rem, 4vw, 1.55rem)/1.25 var(--display); }
+.rule-intro .rule-content { padding: .6rem 0 0; }
 .rule-topic { border: 1px solid var(--bronze); background: var(--panel); }
 .rule-topic + .rule-topic { margin-top: .55rem; }
 .rule-topic summary { padding: .7rem .9rem; font-weight: 650; cursor: pointer; }
