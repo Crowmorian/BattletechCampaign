@@ -97,9 +97,10 @@ function renderUnits() {
 function renderCard(unit) {
   const card = unitTemplate.content.firstElementChild.cloneNode(true);
   card.dataset.unitId = unit.id;
-  card.dataset.type = unit.type;
   card.classList.toggle('inoperable', unit.inoperable);
-  card.querySelector('.unit-art').setAttribute('aria-label', unitTypes[unit.type]);
+  const icon = card.querySelector('.unit-icon');
+  icon.alt = unitTypes[unit.type];
+  icon.src = `Assets/${unit.type}_icon.png`;
   card.querySelector('h3').textContent = unit.chassis;
   card.querySelector('.unit-variant').textContent = unit.variant;
 
