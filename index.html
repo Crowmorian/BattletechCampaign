@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player sheet | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=critical-hits-1">
-  <script src="app.js?v=critical-hits-1" defer></script>
+  <link rel="stylesheet" href="styles.css?v=damage-steppers-1">
+  <script src="app.js?v=damage-steppers-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -93,10 +93,38 @@
         <label class="wide">Unit type
           <select name="type"><option value="mech">’Mech</option><option value="vehicle">Vehicle</option><option value="air">Air unit</option></select>
         </label>
-        <label>Total armor <input name="armorTotal" type="number" min="0" max="300" step="1" required></label>
-        <label>Remaining armor <input name="armorRemaining" type="number" min="0" step="1" required></label>
-        <label>Total structure <input name="structureTotal" type="number" min="0" max="300" step="1" required></label>
-        <label>Remaining structure <input name="structureRemaining" type="number" min="0" step="1" required></label>
+        <div class="track-field">
+          <label for="armor-total">Total armor</label>
+          <div class="number-stepper">
+            <button type="button" data-step="-1" aria-label="Decrease total armor">−</button>
+            <input id="armor-total" name="armorTotal" type="number" inputmode="numeric" min="0" max="300" step="1" required>
+            <button type="button" data-step="1" aria-label="Increase total armor">+</button>
+          </div>
+        </div>
+        <div class="track-field">
+          <label for="armor-remaining">Remaining armor</label>
+          <div class="number-stepper">
+            <button type="button" data-step="-1" aria-label="Decrease remaining armor">−</button>
+            <input id="armor-remaining" name="armorRemaining" type="number" inputmode="numeric" min="0" step="1" required>
+            <button type="button" data-step="1" aria-label="Increase remaining armor">+</button>
+          </div>
+        </div>
+        <div class="track-field">
+          <label for="structure-total">Total structure</label>
+          <div class="number-stepper">
+            <button type="button" data-step="-1" aria-label="Decrease total structure">−</button>
+            <input id="structure-total" name="structureTotal" type="number" inputmode="numeric" min="0" max="300" step="1" required>
+            <button type="button" data-step="1" aria-label="Increase total structure">+</button>
+          </div>
+        </div>
+        <div class="track-field">
+          <label for="structure-remaining">Remaining structure</label>
+          <div class="number-stepper">
+            <button type="button" data-step="-1" aria-label="Decrease remaining structure">−</button>
+            <input id="structure-remaining" name="structureRemaining" type="number" inputmode="numeric" min="0" step="1" required>
+            <button type="button" data-step="1" aria-label="Increase remaining structure">+</button>
+          </div>
+        </div>
       </div>
       <fieldset class="critical-editor">
         <legend>Critical hits</legend>

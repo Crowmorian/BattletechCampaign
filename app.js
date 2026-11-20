@@ -23,14 +23,14 @@ const preview = {
     rook: {
       name: 'Rook Company', supply: 18,
       units: [
-        sampleUnit('rook-1', 'Hunchback', 'HBK-4G', 20, 20, 10, 10),
-        sampleUnit('rook-2', 'Shadow Hawk', 'SHD-2H', 18, 11, 10, 8, { fireControl: 2, weapons: 1 }),
+        sampleUnit('rook-1', 'Hunchback', 'HBK-4G', 14, 14, 10, 10),
+        sampleUnit('rook-2', 'Shadow Hawk', 'SHD-2H', 13, 8, 10, 8, { fireControl: 2, weapons: 1 }),
         sampleUnit('rook-3', 'Locust', 'LCT-1V', 12, 2, 6, 1, { engine: 1, mp: 2 }, true),
       ],
     },
     kestrel: {
       name: 'Kestrel Lance', supply: 14,
-      units: [sampleUnit('kestrel-1', 'Centurion', 'CN9-A', 18, 18, 10, 10)],
+      units: [sampleUnit('kestrel-1', 'Centurion', 'CN9-A', 13, 13, 10, 10)],
     },
   },
 };
@@ -48,6 +48,11 @@ const criticalOptions = byId('critical-options');
 const unitDialog = byId('unit-dialog');
 const unitForm = byId('unit-form');
 const fields = unitForm.elements;
+const damageSteppers = [...unitForm.querySelectorAll('.number-stepper')].map((stepper) => ({
+  input: stepper.querySelector('input'),
+  minus: stepper.querySelector('[data-step="-1"]'),
+  plus: stepper.querySelector('[data-step="1"]'),
+}));
 const addUnit = byId('add-unit');
 const removeUnit = byId('remove-unit');
 const removeDialog = byId('remove-dialog');
@@ -249,9 +254,25 @@ function updateEditorValidity() {
     const tooHigh = !Number.isNaN(total.valueAsNumber) && remaining.valueAsNumber > total.valueAsNumber;
     remaining.setCustomValidity(tooHigh ? `Remaining ${name} must be at most ${total.value}.` : '');
   }
+  for (const { input, minus, plus } of damageSteppers) {
+    const value = input.valueAsNumber;
+    const max = input.max === '' ? Infinity : Number(input.max);
+    minus.setAttribute('aria-disabled', String(Number.isNaN(value) || value <= Number(input.min)));
+    plus.setAttribute('aria-disabled', String((value || 0) >= max));
+  }
   for (const name of ['chassis', 'variant']) {
     const field = fields.namedItem(name);
     field.setCustomValidity(field.value && !field.value.trim() ? 'Enter a value.' : '');
+  }
+}
+
+for (const { input, minus, plus } of damageSteppers) {
+  for (const [button, step] of [[minus, 'stepDown'], [plus, 'stepUp']]) {
+    button.addEventListener('click', () => {
+      if (button.getAttribute('aria-disabled') === 'true') return;
+      input[step]();
+      updateEditorValidity();
+    });
   }
 }
 
