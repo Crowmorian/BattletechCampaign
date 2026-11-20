@@ -107,7 +107,7 @@ const campaignApi = (() => {
     const [offers, state, objectives] = await Promise.all([
       checked(table('contracts').select('id, title, briefing, reward, visible').order('created_at').order('id')),
       checked(table('campaign_state').select('current_contract_id').single()),
-      checked(table('contract_objectives').select('id, contract_id, name, status, visible').order('created_at').order('id')),
+      checked(table('contract_objectives').select('id, contract_id, name, description, rule_text, completion_reward, status, visible').order('created_at').order('id')),
     ]);
     return {
       currentId: state.current_contract_id,
@@ -180,7 +180,9 @@ const campaignApi = (() => {
     createContract: (values) => checked(table('contracts').insert(values).select('id').single()),
     editContract: (id, values) => changed(table('contracts').update(values).eq('id', id)),
     showContract: (id, visible) => changed(table('contracts').update({ visible }).eq('id', id).eq('visible', !visible)),
-    addObjective: (contractId, name) => checked(table('contract_objectives').insert({ contract_id: contractId, name })),
+    addObjective: (contractId, details) => checked(table('contract_objectives')
+      .insert({ contract_id: contractId, ...(typeof details === 'string' ? { name: details } : details) }).select('id').single()),
+    editObjective: (id, details) => changed(table('contract_objectives').update(details).eq('id', id)),
     setObjectiveStatus: (id, status, previous) => changed(table('contract_objectives').update({ status }).eq('id', id).eq('status', previous)),
     showObjective: (id, visible) => changed(table('contract_objectives').update({ visible }).eq('id', id).eq('visible', !visible)),
     readHandouts, addHandoutImage, removeHandoutImages, deleteHandout,

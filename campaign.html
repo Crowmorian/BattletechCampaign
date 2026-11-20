@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contracts | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=objectives-1">
+  <link rel="stylesheet" href="styles.css?v=objective-details-1">
   <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
-  <script src="supabase/campaign-api.js?v=objectives-1" defer></script>
-  <script src="contracts.js?v=objectives-1" defer></script>
+  <script src="supabase/campaign-api.js?v=objective-details-1" defer></script>
+  <script src="contracts.js?v=objective-details-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -66,6 +66,21 @@
     </form>
   </dialog>
 
+  <dialog id="objective-dialog" aria-labelledby="objective-editor-title">
+    <form id="objective-editor" class="dialog-body contract-editor">
+      <h2 id="objective-editor-title">New objective</h2>
+      <label>Title <input name="title" required maxlength="180"></label>
+      <label>Description <textarea name="description" rows="4"></textarea></label>
+      <label>Special rule (optional) <textarea name="rule" rows="3"></textarea></label>
+      <label>Completion reward (optional) <input name="reward" placeholder="e.g. 2 SP"></label>
+      <p id="objective-editor-status" class="hub-status" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-objective" type="button">Cancel</button>
+        <button type="submit" class="primary">Save objective</button>
+      </div>
+    </form>
+  </dialog>
+
   <template id="offer-template">
     <details class="rule-topic" name="contract-offers">
       <summary><span class="offer-title"></span><span class="offer-visibility" hidden></span></summary>
@@ -84,6 +99,9 @@
   <template id="objective-template">
     <li class="objective-card">
       <h4></h4>
+      <p class="objective-description" hidden></p>
+      <p class="objective-rule" hidden><strong>Special rule</strong><span></span></p>
+      <p class="objective-reward" hidden><strong>Completion reward</strong><span></span></p>
       <div class="objective-controls">
         <span class="objective-status"><span class="objective-mark" aria-hidden="true"></span><span class="objective-state"></span></span>
         <span class="objective-visibility" hidden></span>
@@ -93,6 +111,7 @@
             <option value="completed">Completed</option>
             <option value="lost">Lost</option>
           </select>
+          <button type="button" class="objective-edit">Edit</button>
           <button type="button" class="objective-toggle"></button>
         </div>
       </div>
@@ -100,15 +119,13 @@
   </template>
   <template id="objectives-template">
     <div class="contract-objectives">
-      <h3>Objectives</h3>
+      <div class="panel-heading">
+        <h3>Objectives</h3>
+        <button type="button" class="add-objective" hidden>Add objective</button>
+      </div>
       <p class="objective-note" hidden>Players see revealed objectives only while this contract is current.</p>
       <ul class="objective-list"></ul>
       <p class="contract-empty" hidden></p>
-      <form class="objective-form" hidden>
-        <label>New objective</label>
-        <input name="objective" type="text" required maxlength="180">
-        <button type="submit">Add objective</button>
-      </form>
     </div>
   </template>
 </body>

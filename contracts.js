@@ -10,6 +10,9 @@
   const offerTemplate = byId('offer-template');
   const objectiveTemplate = byId('objective-template');
   const objectivesTemplate = byId('objectives-template');
+  const objectiveDialog = byId('objective-dialog');
+  const objectiveEditor = byId('objective-editor');
+  const objectiveEditorStatus = byId('objective-editor-status');
   const contractDialog = byId('contract-dialog');
   const contractForm = byId('contract-form');
   const formStatus = byId('contract-form-status');
@@ -20,6 +23,8 @@
     lost: { label: 'Lost', mark: '×' },
   };
   let editedContractId = null;
+  let objectiveContractId = null;
+  let editedObjectiveId = null;
   let renderedCurrentId = null;
   let loaded;
   let pending = false;
@@ -54,7 +59,7 @@
     return `${offer.reward.toLocaleString()} SP reward`;
   }
 
-  function makeOffer(offer, draft) {
+  function makeOffer(offer) {
     const entry = offerTemplate.content.firstElementChild.cloneNode(true);
     entry.dataset.contractId = offer.id;
     entry.querySelector('.offer-title').textContent = offer.title;
@@ -67,7 +72,7 @@
     visibility.textContent = offer.visible ? 'Visible to players' : 'Draft';
     entry.querySelector('.contract-actions').hidden = false;
     entry.querySelector('.offer-edit').addEventListener('click', () => openEditor(offer.id));
-    entry.querySelector('.rule-content').append(makeObjectives(offer, draft, true));
+    entry.querySelector('.rule-content').append(makeObjectives(offer, true));
 
     const toggle = entry.querySelector('.offer-visibility-toggle');
     toggle.textContent = offer.visible ? 'Hide from players' : 'Show to players';
@@ -86,17 +91,28 @@
     return entry;
   }
 
-  function makeObjective(objective) {
+  function makeObjective(contractId, objective) {
     const card = objectiveTemplate.content.firstElementChild.cloneNode(true);
     card.dataset.objectiveId = objective.id;
     card.dataset.status = objective.status;
     card.querySelector('h4').textContent = objective.name;
+    const description = card.querySelector('.objective-description');
+    description.textContent = objective.description;
+    description.hidden = !objective.description;
+    for (const [selector, value] of [['.objective-rule', objective.rule_text], ['.objective-reward', objective.completion_reward]]) {
+      const field = card.querySelector(selector);
+      field.querySelector('span').textContent = value;
+      field.hidden = !value;
+    }
     const { label, mark } = objectiveStates[objective.status];
     card.querySelector('.objective-mark').textContent = mark;
     card.querySelector('.objective-state').textContent = label;
     if (!isGM) return card;
 
     card.querySelector('.objective-actions').hidden = false;
+    const edit = card.querySelector('.objective-edit');
+    edit.setAttribute('aria-label', `Edit objective ${objective.name}`);
+    edit.addEventListener('click', () => openObjectiveEditor(contractId, objective));
     const visibility = card.querySelector('.objective-visibility');
     visibility.hidden = false;
     visibility.textContent = objective.visible ? 'Revealed' : 'Hidden';
@@ -131,42 +147,19 @@
     document.querySelector(`[data-objective-id="${CSS.escape(id)}"] ${selector}`)?.focus({ preventScroll: true });
   }
 
-  function makeObjectives(contract, draft = '', planned = false) {
+  function makeObjectives(contract, planned = false) {
     const panel = objectivesTemplate.content.firstElementChild.cloneNode(true);
     const objectives = contract.objectives.filter((objective) => isGM || objective.visible);
-    panel.querySelector('.objective-list').append(...objectives.map(makeObjective));
+    panel.querySelector('.objective-list').append(...objectives.map((objective) => makeObjective(contract.id, objective)));
     const empty = panel.querySelector('.contract-empty');
     empty.hidden = objectives.length > 0;
     empty.textContent = isGM ? 'No objectives have been added.' : 'No objectives have been revealed.';
     if (!isGM) return panel;
 
     panel.querySelector('.objective-note').hidden = !planned;
-    const form = panel.querySelector('.objective-form');
-    const input = form.elements.objective;
-    const submit = form.querySelector('button');
-    form.hidden = false;
-    form.dataset.contractId = contract.id;
-    input.id = `objective-name-${contract.id}`;
-    form.querySelector('label').htmlFor = input.id;
-    input.value = draft;
-    input.addEventListener('input', () => input.setCustomValidity(''));
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      if (pending) return;
-      const name = readText(input);
-      if (!name) return;
-      submit.disabled = true;
-      input.readOnly = true;
-      const saved = await update(() => campaignApi.addObjective(contract.id, name), 'Hidden objective added.');
-      submit.disabled = false;
-      input.readOnly = false;
-      if (!saved) return;
-      const nextInput = byId(input.id);
-      if (nextInput) {
-        nextInput.value = '';
-        nextInput.focus({ preventScroll: true });
-      }
-    });
+    const add = panel.querySelector('.add-objective');
+    add.hidden = false;
+    add.addEventListener('click', () => openObjectiveEditor(contract.id));
     return panel;
   }
 
@@ -176,8 +169,6 @@
 
   function render(data) {
     loaded = data;
-    const drafts = new Map(Array.from(document.querySelectorAll('.objective-form[data-contract-id]'),
-      (form) => [form.dataset.contractId, form.elements.objective.value]));
     const current = getCurrent(data);
     renderedCurrentId = current?.id ?? null;
     currentSection.hidden = !current;
@@ -185,14 +176,14 @@
       byId('current-name').textContent = current.title;
       byId('current-reward').textContent = rewardText(current);
       byId('current-briefing').textContent = current.briefing;
-      currentObjectives.replaceChildren(makeObjectives(current, drafts.get(current.id)));
+      currentObjectives.replaceChildren(makeObjectives(current));
     } else {
       currentObjectives.replaceChildren();
     }
 
     const openOffer = offerList.querySelector('details[open]')?.dataset.contractId;
     const offers = data.offers.filter((offer) => offer.id !== current?.id && (isGM || offer.visible));
-    offerList.replaceChildren(...offers.map((offer) => makeOffer(offer, drafts.get(offer.id))));
+    offerList.replaceChildren(...offers.map(makeOffer));
     const openEntry = findOfferEntry(openOffer);
     if (openEntry) openEntry.open = true;
     byId('empty-contracts').hidden = offers.length > 0;
@@ -221,6 +212,22 @@
     return value;
   }
 
+  function openObjectiveEditor(contractId, objective) {
+    if (pending) return;
+    objectiveContractId = contractId;
+    editedObjectiveId = objective?.id ?? null;
+    objectiveEditor.reset();
+    objectiveEditorStatus.textContent = '';
+    byId('objective-editor-title').textContent = objective ? 'Edit objective' : 'New objective';
+    const fields = objectiveEditor.elements;
+    fields.title.setCustomValidity('');
+    fields.title.value = objective?.name ?? '';
+    fields.description.value = objective?.description ?? '';
+    fields.rule.value = objective?.rule_text ?? '';
+    fields.reward.value = objective?.completion_reward ?? '';
+    objectiveDialog.showModal();
+  }
+
   render(await campaignApi.readContracts());
   status.textContent = '';
   if (!isGM) return;
@@ -232,8 +239,9 @@
     if (renderedCurrentId) openEditor(renderedCurrentId);
   });
   byId('cancel-contract').addEventListener('click', () => contractDialog.close());
+  byId('cancel-objective').addEventListener('click', () => objectiveDialog.close());
 
-  for (const input of [contractForm.elements.title, contractForm.elements.briefing]) {
+  for (const input of [contractForm.elements.title, contractForm.elements.briefing, objectiveEditor.elements.title]) {
     input.addEventListener('input', () => input.setCustomValidity(''));
   }
 
@@ -259,6 +267,32 @@
     } else {
       byId('edit-current').focus();
     }
+  });
+
+  objectiveEditor.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (pending) return;
+    const fields = objectiveEditor.elements;
+    const name = readText(fields.title);
+    if (!name) return;
+    const details = {
+      name,
+      description: fields.description.value.trim(),
+      rule_text: fields.rule.value.trim(),
+      completion_reward: fields.reward.value.trim(),
+    };
+    const submit = objectiveEditor.querySelector('[type="submit"]');
+    const contractId = objectiveContractId;
+    let id = editedObjectiveId;
+    submit.disabled = true;
+    const saved = await update(async () => {
+      if (id) await campaignApi.editObjective(id, details);
+      else id = (await campaignApi.addObjective(contractId, details)).id;
+    }, id ? 'Objective details updated.' : 'Hidden objective added.', objectiveEditorStatus);
+    submit.disabled = false;
+    if (!saved) return;
+    objectiveDialog.close();
+    focusObjectiveControl(id, '.objective-edit');
   });
 
   byId('clear-current').addEventListener('click', async () => {
