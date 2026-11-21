@@ -124,7 +124,7 @@ const campaignApi = (() => {
 
   async function readTableOverview() {
     const [companies, state] = await Promise.all([
-      checked(table('rosters').select('name, roster_units(inoperable)').order('name')),
+      checked(table('rosters').select('id, name, roster_units(inoperable)').order('name')),
       checked(table('campaign_state').select('current_contract_id').single()),
     ]);
     const id = state.current_contract_id;
