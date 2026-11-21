@@ -42,6 +42,7 @@ async function initializeRoster() {
 
   function renderSheet() {
     byId('group-name').textContent = roster.name;
+    companyIcons.apply(sheet.querySelector('.company-icon'), roster);
     byId('sheet-mode').textContent = canEdit ? 'Player sheet' : 'GM view · Read only';
     byId('supply-form').hidden = !canEdit;
     byId('supply-readout').hidden = canEdit;

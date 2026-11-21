@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player sheet | BattleTech Campaign</title>
-  <link rel="stylesheet" href="styles.css?v=supabase-1">
+  <link rel="stylesheet" href="styles.css?v=table-overview-1">
   <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
   <script src="supabase/campaign-api.js?v=supabase-1" defer></script>
-  <script src="app.js?v=supabase-1" defer></script>
+  <script src="company-icons.js?v=table-overview-1" defer></script>
+  <script src="app.js?v=table-overview-1" defer></script>
   <script src="rules/vendor/markdown-it-15.0.3.min.js" defer></script>
   <script src="rules/hub.js?v=alpha-strike-2" defer></script>
+  <script src="refresh.js?v=table-overview-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -20,6 +22,7 @@
       </a>
       <div class="topbar-actions">
         <button type="button" id="rules-button" class="quiet" aria-haspopup="dialog">Rules</button>
+        <button type="button" data-refresh>Refresh</button>
         <a class="button" href="index.html">Hub</a>
       </div>
     </div>
@@ -28,9 +31,12 @@
   <main class="shell">
     <div id="sheet" hidden>
       <section class="sheet-header" aria-labelledby="group-name">
-        <div class="group">
-          <p id="sheet-mode" class="eyebrow">Player sheet</p>
-          <h1 id="group-name"></h1>
+        <div class="group company-heading">
+          <img class="company-icon" src="Assets/mech_icon.png" width="64" height="64" alt="">
+          <div>
+            <p id="sheet-mode" class="eyebrow">Player sheet</p>
+            <h1 id="group-name"></h1>
+          </div>
         </div>
         <form id="supply-form" class="supply">
           <label for="supply">Supply points <span>SP</span></label>

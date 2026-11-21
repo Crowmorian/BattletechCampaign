@@ -92,6 +92,16 @@ h1 { margin-top: .35rem; font: 600 clamp(1.9rem, 5vw, 3.1rem)/1.14 var(--display
 .supply-entry { display: flex; gap: .4rem; }
 .supply input { min-width: 0; font: 700 1.15rem var(--mono); }
 .supply output { display: block; font: 700 1.45rem var(--mono); }
+.company-heading { display: flex; align-items: center; gap: .85rem; min-width: 0; }
+.company-icon { flex: none; width: clamp(2.5rem, 7vw, 4rem); height: auto; object-fit: contain; }
+.table-overview { padding-block: 1.75rem 2.5rem; }
+.overview-companies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.overview-company { padding: clamp(.75rem, 2vw, 1.4rem); border: 1px solid var(--bronze); background: #22291e; }
+.overview-company h2 { font: 600 clamp(1.15rem, 3vw, 2.25rem)/1.2 var(--display); overflow-wrap: anywhere; }
+.company-readiness { margin-top: .3rem; color: var(--muted); }
+.table-overview .current-contract { font-size: clamp(1rem, 1.9vw, 1.35rem); }
+.table-overview .current-contract h2 { font-size: clamp(1.4rem, 2.5vw, 1.9rem); }
+#overview-briefing { margin-top: .75rem; }
 .roster { margin-top: 2rem; }
 .section-header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; padding-bottom: .75rem; border-bottom: 3px double var(--line); }
 .section-header h2 { font: 600 1.65rem/1.15 var(--display); }
@@ -351,6 +361,7 @@ legend { padding-inline: .25rem; }
   .rules-tabs button { flex: 1; padding-inline: .45rem; }
 }
 @media (max-width: 450px) {
+  .overview-company { align-items: flex-start; flex-direction: column; }
   .track-field { grid-column: 1 / -1; }
   .critical-editor .critical-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: .1rem; }
   .critical-editor .critical-effect { grid-column: 1 / -1; }

@@ -17,6 +17,7 @@
     byId('hub-navigation').hidden = !account?.role;
     byId('my-roster').hidden = account?.role !== 'player';
     browseRosters.hidden = !isGM;
+    byId('table-overview').hidden = !isGM;
     const identity = byId('hub-account');
     identity.hidden = !account?.role;
     if (isGM) identity.textContent = 'Game Master';

@@ -122,6 +122,22 @@ const campaignApi = (() => {
     return changed(previous ? query.eq('current_contract_id', previous) : query.is('current_contract_id', null), 'singleton');
   }
 
+  async function readTableOverview() {
+    const [companies, state] = await Promise.all([
+      checked(table('rosters').select('name, roster_units(inoperable)').order('name')),
+      checked(table('campaign_state').select('current_contract_id').single()),
+    ]);
+    const id = state.current_contract_id;
+    if (!id) return { companies, contract: null };
+
+    const [contract, objectives] = await Promise.all([
+      checked(table('contracts').select('title, briefing, reward').eq('id', id).eq('visible', true).maybeSingle()),
+      checked(table('contract_objectives').select('name, description, rule_text, completion_reward, status')
+        .eq('contract_id', id).eq('visible', true).order('created_at').order('id')),
+    ]);
+    return { companies, contract: contract ? { ...contract, objectives } : null };
+  }
+
   async function readHandouts() {
     const rows = await checked(table('handouts').select('id, title, body, visible, handout_games(name), handout_images(id, filename, object_path)'));
     return rows.map(({ handout_games: game, handout_images: images, ...row }) => ({
@@ -176,7 +192,7 @@ const campaignApi = (() => {
     saveSupply: (id, supply) => changed(table('rosters').update({ supply }).eq('id', id)),
     setInoperable: (id, value) => changed(table('roster_units').update({ inoperable: value }).eq('id', id)),
     removeUnit: (rosterId, id) => changed(table('roster_units').delete().eq('id', id).eq('roster_id', rosterId)),
-    readContracts, setCurrentContract,
+    readContracts, setCurrentContract, readTableOverview,
     createContract: (values) => checked(table('contracts').insert(values).select('id').single()),
     editContract: (id, values) => changed(table('contracts').update(values).eq('id', id)),
     showContract: (id, visible) => changed(table('contracts').update({ visible }).eq('id', id).eq('visible', !visible)),

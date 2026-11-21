@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Table Overview | BattleTech Campaign</title>
+  <link rel="stylesheet" href="styles.css?v=table-overview-1">
+  <script src="supabase/vendor/supabase-js-2.119.2.js" defer></script>
+  <script src="supabase/campaign-api.js?v=table-overview-1" defer></script>
+  <script src="rules/vendor/markdown-it-15.0.3.min.js" defer></script>
+  <script src="formatting.js?v=descriptions-1" defer></script>
+  <script src="company-icons.js?v=table-overview-1" defer></script>
+  <script src="refresh.js?v=table-overview-1" defer></script>
+  <script src="overview.js?v=table-overview-1" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="BattleTech Campaign home">
+        <span class="insignia" aria-hidden="true"><i></i></span>
+        <span>BattleTech <small>Campaign</small></span>
+      </a>
+      <div class="topbar-actions"><button type="button" data-refresh>Refresh</button><a class="button" href="index.html">Hub</a></div>
+    </div>
+  </header>
+
+  <main class="shell table-overview" aria-label="Table overview">
+    <div id="overview-content" hidden>
+      <section id="overview-companies" class="overview-companies" aria-label="Mercenary companies"></section>
+      <section id="overview-contract" class="hub-panel current-contract" aria-labelledby="overview-contract-title" hidden>
+        <p class="eyebrow">Current contract</p>
+        <h1 id="overview-contract-title"></h1>
+        <p id="overview-reward" class="contract-reward"></p>
+        <div id="overview-briefing" class="formatted-text"></div>
+        <div class="contract-objectives">
+          <h2>Objectives</h2>
+          <ul id="overview-objectives" class="objective-list"></ul>
+          <p id="overview-empty-objectives" class="contract-empty" hidden>No objectives have been revealed.</p>
+        </div>
+      </section>
+      <p id="overview-empty-contract" class="hub-panel" hidden>No current contract.</p>
+    </div>
+    <p id="overview-status" class="hub-status" role="status">Loading table overview…</p>
+  </main>
+
+  <template id="overview-company-template">
+    <article class="overview-company company-heading">
+      <img class="company-icon" src="Assets/mech_icon.png" width="64" height="64" alt="">
+      <div><h2></h2><p class="company-readiness"></p></div>
+    </article>
+  </template>
+
+  <template id="overview-objective-template">
+    <li class="objective-card">
+      <h4></h4>
+      <p class="objective-status"></p>
+      <div class="objective-description formatted-text" hidden></div>
+      <div class="objective-rule" hidden><strong>Special rule</strong><div class="formatted-text"></div></div>
+      <div class="objective-reward" hidden><strong>Completion reward</strong><div class="formatted-text"></div></div>
+    </li>
+  </template>
+</body>
+</html>
